@@ -7,33 +7,43 @@ public class AstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
-	public String visitLiteralExpression(Expression.Literal expression) {
+	public String visitLiteralExpression(Expression.LiteralExpression expression) {
 		if (expression.value == null) return "nil";
 		return expression.value.toString();
 	}
 
 	@Override
-	public String visitGroupingExpression(Expression.Grouping expression) {
+	public String visitVariableExpression(Expression.VariableExpression expression) {
+		return "(var " + expression.name.lexeme +")";
+	}
+
+	@Override
+	public String visitAssignExpression(Expression.AssignExpression expression) {
+		return ("= " + expression.name.lexeme + print(expression.value));
+	}
+
+	@Override
+	public String visitGroupingExpression(Expression.GroupingExpression expression) {
 		return parenthesize("group", expression.expression);
 	}
 
 	@Override
-	public String visitBlockExpression(Expression.Block expression) {
+	public String visitBlockExpression(Expression.BlockExpression expression) {
 		return parenthesize("block", expression.left, expression.right);
 	}
 
 	@Override
-	public String visitUnaryExpression(Expression.Unary expression) {
+	public String visitUnaryExpression(Expression.UnaryExpression expression) {
 		return parenthesize(expression.operator.lexeme, expression.right);
 	}
 
 	@Override
-	public String visitBinaryExpression(Expression.Binary expression) {
+	public String visitBinaryExpression(Expression.BinaryExpression expression) {
 		return parenthesize(expression.operator.lexeme, expression.left, expression.right);
 	}
 
 	@Override
-	public String visitTernaryExpression(Expression.Ternary expression) {
+	public String visitTernaryExpression(Expression.TernaryExpression expression) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("(? ");
 		builder.append(print(expression.condition)).append(" ");

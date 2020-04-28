@@ -2,9 +2,8 @@ package space.bbkr.lang.jlox;
 
 import static space.bbkr.lang.jlox.TokenType.*;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import javax.annotation.Nullable;
 
 public class Parser {
 	private static class ParseError extends RuntimeException {}
@@ -16,13 +15,12 @@ public class Parser {
 		this.tokens = tokens;
 	}
 
-	@Nullable
-	Expression parse() {
-		try {
-			return expression();
-		} catch (ParseError e) {
-			return null;
+	List<Statement> parse() {
+		List<Statement> statements = new ArrayList<>();
+		while (!isAtEnd()) {
+			statements.add(declaration());
 		}
+		return statements;
 	}
 
 	//movement
@@ -93,9 +91,68 @@ public class Parser {
 		return peek().type == type;
 	}
 
+	private Statement declaration() {
+		try {
+			if (match(VAR)) return varDelcaration();
+
+			return statement();
+		} catch (ParseError error) {
+			synchronize();
+			return null;
+		}
+	}
+
+	private Statement varDelcaration() {
+		Token name = consume(IDENTIFIER, "Expect variable name.");
+		Expression initializer = null;
+
+		if (match(EQUAL)) {
+			initializer = expression();
+		}
+
+		consume(SEMICOLON, "Expect ';' after variable declaration");
+		return new Statement.VarStatement(name, initializer);
+	}
+
 	//actual parsing
+	private Statement statement() {
+		if (match(PRINT)) return printStatement();
+
+		return expressionStatement();
+	}
+
+	//TODO: remove once standard lib is working
+	private Statement printStatement() {
+		Expression value = expression();
+		consume(SEMICOLON, "Expect ';' after value.");
+		return new Statement.PrintStatement(value);
+	}
+
+	private Statement expressionStatement() {
+		Expression value = expression();
+		consume(SEMICOLON, "Expect ';' after value.");
+		return new Statement.ExpressionStatement(value);
+	}
+
 	private Expression expression() {
-		return block();
+		return assignment();
+	}
+
+	private Expression assignment() {
+		Expression expression = block();
+
+		if (match(EQUAL)) {
+			Token equals = previous();
+			Expression value = assignment();
+
+			if (expression instanceof Expression.VariableExpression) {
+				Token name = ((Expression.VariableExpression)expression).name;
+				return new Expression.AssignExpression(name, value);
+			}
+
+			throw error(equals, "Invalid assignment target.");
+		}
+		return expression;
 	}
 
 	private Expression block() {
@@ -103,7 +160,7 @@ public class Parser {
 
 		while (match(COMMA)) {
 			Expression right = ternary();
-			expression = new Expression.Block(expression, right);
+			expression = new Expression.BlockExpression(expression, right);
 		}
 
 		return expression;
@@ -117,7 +174,7 @@ public class Parser {
 			Expression left = equality();
 			consume(COLON, "Expect ':' after ternary");
 			Expression right = equality();
-			expression = new Expression.Ternary(question, expression, left, right);
+			expression = new Expression.TernaryExpression(question, expression, left, right);
 		}
 
 		return expression;
@@ -129,7 +186,7 @@ public class Parser {
 		while (match(BANG_EQUAL, EQUAL_EQUAL)) {
 			Token operator = previous();
 			Expression right = comparison();
-			expression = new Expression.Binary(expression, operator, right);
+			expression = new Expression.BinaryExpression(expression, operator, right);
 		}
 
 		return expression;
@@ -141,7 +198,7 @@ public class Parser {
 		while (match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL)) {
 			Token operator = previous();
 			Expression right = addition();
-			expression = new Expression.Binary(expression, operator, right);
+			expression = new Expression.BinaryExpression(expression, operator, right);
 		}
 
 		return expression;
@@ -155,7 +212,7 @@ public class Parser {
 		while (match(MINUS, PLUS)) {
 			Token operator = previous();
 			Expression right = multiplication();
-			expression = new Expression.Binary(expression, operator, right);
+			expression = new Expression.BinaryExpression(expression, operator, right);
 		}
 
 		return expression;
@@ -167,7 +224,7 @@ public class Parser {
 		while (match(SLASH, STAR)) {
 			Token operator = previous();
 			Expression right = unary();
-			expression = new Expression.Binary(expression, operator, right);
+			expression = new Expression.BinaryExpression(expression, operator, right);
 		}
 
 		return expression;
@@ -177,7 +234,7 @@ public class Parser {
 		if (match(BANG, MINUS)) {
 			Token operator = previous();
 			Expression right = unary();
-			return new Expression.Unary(operator, right);
+			return new Expression.UnaryExpression(operator, right);
 		}
 
 		//+, /, and * must have left-hand operands!
@@ -189,18 +246,22 @@ public class Parser {
 	}
 
 	private Expression primary() {
-		if (match(FALSE)) return new Expression.Literal(false);
-		if (match(TRUE)) return new Expression.Literal(true);
-		if (match(NIL)) return new Expression.Literal(null);
+		if (match(FALSE)) return new Expression.LiteralExpression(false);
+		if (match(TRUE)) return new Expression.LiteralExpression(true);
+		if (match(NIL)) return new Expression.LiteralExpression(null);
 
 		if (match(NUMBER, STRING)) {
-			return new Expression.Literal(previous().literal);
+			return new Expression.LiteralExpression(previous().literal);
+		}
+
+		if (match(IDENTIFIER)) {
+			return new Expression.VariableExpression(previous());
 		}
 
 		if (match(LEFT_PAREN)) {
 			Expression expression = expression();
 			consume(RIGHT_PAREN, "Expect ')' after expression.");
-			return new Expression.Grouping(expression);
+			return new Expression.GroupingExpression(expression);
 		}
 
 		throw error(peek(), "Expect expression.");

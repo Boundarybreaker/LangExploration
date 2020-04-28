@@ -7,18 +7,28 @@ class ReversePolishAstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
-	public String visitLiteralExpression(Expression.Literal expression) {
+	public String visitLiteralExpression(Expression.LiteralExpression expression) {
 		if (expression.value == null) return "nil";
 		return expression.value.toString();
 	}
 
 	@Override
-	public String visitGroupingExpression(Expression.Grouping expression) {
+	public String visitVariableExpression(Expression.VariableExpression expression) {
+		return expression.name.lexeme;
+	}
+
+	@Override
+	public String visitAssignExpression(Expression.AssignExpression expression) {
+		return expression.name.lexeme + print(expression.value) + " =";
+	}
+
+	@Override
+	public String visitGroupingExpression(Expression.GroupingExpression expression) {
 		return stack("group", expression.expression);
 	}
 
 	@Override
-	public String visitBlockExpression(Expression.Block expression) {
+	public String visitBlockExpression(Expression.BlockExpression expression) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(expression.left).append(" ");
 		builder.append(expression.right);
@@ -26,17 +36,17 @@ class ReversePolishAstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
-	public String visitUnaryExpression(Expression.Unary expression) {
+	public String visitUnaryExpression(Expression.UnaryExpression expression) {
 		return stack(expression.operator.lexeme, expression.right);
 	}
 
 	@Override
-	public String visitBinaryExpression(Expression.Binary expression) {
+	public String visitBinaryExpression(Expression.BinaryExpression expression) {
 		return stack(expression.operator.lexeme, expression.left, expression.right);
 	}
 
 	@Override
-	public String visitTernaryExpression(Expression.Ternary expression) {
+	public String visitTernaryExpression(Expression.TernaryExpression expression) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(print(expression.positive)).append(" ");
 		builder.append(print(expression.negative)).append(" ");

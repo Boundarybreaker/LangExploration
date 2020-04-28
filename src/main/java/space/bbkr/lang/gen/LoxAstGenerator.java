@@ -14,11 +14,19 @@ public class LoxAstGenerator {
 		String outputDir = args[0];
 		defineAst(outputDir, "Expression", Arrays.asList(
 				"Literal: Object value",
+				"Variable: Token name",
+				"Assign: Token name, Expression value",
 				"Grouping: Expression expression",
 				"Block: Expression left, Expression right",
 				"Unary: Token operator, Expression right",
 				"Binary: Expression left, Token operator, Expression right",
 				"Ternary: Token question, Expression condition, Expression positive, Expression negative"
+		));
+
+		defineAst(outputDir, "Statement", Arrays.asList(
+				"Var: Token name, Expression initializer",
+				"Expression: Expression expression",
+				"Print: Expression expression"
 		));
 	}
 
@@ -61,20 +69,20 @@ public class LoxAstGenerator {
 
 		for (String type : types) {
 			String typeName = type.split(":")[0].trim();
-			writer.println("\t\tR visit" + typeName + baseName + "(" + typeName + " " + baseName.toLowerCase() + ");");
+			writer.println("\t\tR visit" + typeName + baseName + "(" + typeName + baseName + " " + baseName.toLowerCase() + ");");
 		}
 
 		writer.println("\t}");
 	}
 
 	private static void defineType(PrintWriter writer, String baseName, String className, String fieldList) {
-		writer.println("\tstatic class " + className + " extends " + baseName + " {");
+		writer.println("\tstatic class " + className + baseName + " extends " + baseName + " {");
 		String[] fields = fieldList.split(", ");
 		for (String field : fields) {
 			writer.println("\t\t final " + field + ";");
 		}
 		writer.println();
-		writer.println("\t\t" + className + "(" + fieldList + ") {");
+		writer.println("\t\t" + className + baseName + "(" + fieldList + ") {");
 		for (String field : fields) {
 			String name = field.split(" ")[1];
 			writer.println("\t\t\tthis." + name + " = " + name + ";");
