@@ -1,0 +1,3 @@
+if (true) /* this is a
+multi-line comment */
+print "hi!"
