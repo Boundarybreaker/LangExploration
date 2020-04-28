@@ -31,10 +31,6 @@ class Scanner {
 		return tokens;
 	}
 
-	private boolean isAtEnd() {
-		return current >= source.length();
-	}
-
 	private void scanToken() {
 		char c = advance();
 		switch (c) {
@@ -99,6 +95,7 @@ class Scanner {
 		}
 	}
 
+	//movement
 	private char advance() {
 		current++;
 		return source.charAt(current - 1);
@@ -114,6 +111,7 @@ class Scanner {
 		return source.charAt(current + 1);
 	}
 
+	//building
 	private void addToken(TokenType type) {
 		addToken(type, null);
 	}
@@ -121,6 +119,11 @@ class Scanner {
 	private void addToken(TokenType type, @Nullable Object literal) {
 		String text = source.substring(start, current);
 		tokens.add(new Token(type, text, literal, line));
+	}
+
+	//checking
+	private boolean isAtEnd() {
+		return current >= source.length();
 	}
 
 	private boolean match(char expected) {
@@ -146,6 +149,7 @@ class Scanner {
 		return isAlpha(c) || isDigit(c);
 	}
 
+	//constructing
 	private void string() {
 		while (peek() != '"' && !isAtEnd()) {
 			if (peek() == '\n') line++;

@@ -35,7 +35,7 @@ public class LoxAstGenerator {
 		writer.println("\tabstract <R> R accept(Visitor<R> visitor);");
 		writer.println();
 
-		//visitor method
+		//visitor interface
 		defineVisitor(writer, baseName, types);
 		writer.println();
 
