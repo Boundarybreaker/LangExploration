@@ -36,6 +36,14 @@ public class ReversePolishAstPrinter implements Expression.Visitor<String> {
 		return builder.toString();
 	}
 
+	@Override
+	public String visitBlockExpression(Expression.Block expression) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(expression.left).append(" ");
+		builder.append(expression.right);
+		return builder.toString();
+	}
+
 	private String stack(String name, Expression... expressions) {
 		StringBuilder builder = new StringBuilder();
 		for (Expression expression : expressions) {

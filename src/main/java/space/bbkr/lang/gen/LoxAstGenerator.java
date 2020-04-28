@@ -17,7 +17,8 @@ public class LoxAstGenerator {
 				"Grouping: Expression expression",
 				"Literal: Object value",
 				"Unary: Token operator, Expression right",
-				"Ternary: Expression condition, Expression positive, Expression negative"
+				"Ternary: Expression condition, Expression positive, Expression negative",
+				"Block: Expression left, Expression right"
 		));
 	}
 

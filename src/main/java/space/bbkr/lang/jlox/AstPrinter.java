@@ -38,6 +38,11 @@ public class AstPrinter implements Expression.Visitor<String> {
 		return builder.toString();
 	}
 
+	@Override
+	public String visitBlockExpression(Expression.Block expression) {
+		return parenthesize("block", expression.left, expression.right);
+	}
+
 	private String parenthesize(String name, Expression... expressions) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("(").append(name);

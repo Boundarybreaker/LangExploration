@@ -12,6 +12,7 @@ abstract class Expression {
 		R visitLiteralExpression(Literal expression);
 		R visitUnaryExpression(Unary expression);
 		R visitTernaryExpression(Ternary expression);
+		R visitBlockExpression(Block expression);
 	}
 
 	static class Binary extends Expression {
@@ -86,6 +87,21 @@ abstract class Expression {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitTernaryExpression(this);
+		}
+	}
+
+	static class Block extends Expression {
+		 final Expression left;
+		 final Expression right;
+
+		Block(Expression left, Expression right) {
+			this.left = left;
+			this.right = right;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitBlockExpression(this);
 		}
 	}
 }

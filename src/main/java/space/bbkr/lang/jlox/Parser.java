@@ -95,7 +95,18 @@ public class Parser {
 
 	//actual parsing
 	private Expression expression() {
-		return ternary();
+		return block();
+	}
+
+	private Expression block() {
+		Expression expression = ternary();
+
+		while (match(COMMA)) {
+			Expression right = ternary();
+			expression = new Expression.Block(expression, right);
+		}
+
+		return expression;
 	}
 
 	private Expression ternary() {
