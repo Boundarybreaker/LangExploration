@@ -27,6 +27,15 @@ public class ReversePolishAstPrinter implements Expression.Visitor<String> {
 		return stack(expression.operator.lexeme, expression.right);
 	}
 
+	@Override
+	public String visitTernaryExpression(Expression.Ternary expression) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(print(expression.positive)).append(" ");
+		builder.append(print(expression.negative)).append(" ");
+		builder.append(print(expression.condition)).append(" ?");
+		return builder.toString();
+	}
+
 	private String stack(String name, Expression... expressions) {
 		StringBuilder builder = new StringBuilder();
 		for (Expression expression : expressions) {

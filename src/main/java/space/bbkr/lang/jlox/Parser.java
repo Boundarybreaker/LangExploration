@@ -93,9 +93,22 @@ public class Parser {
 		return peek().type == type;
 	}
 
-	//analysis
+	//actual parsing
 	private Expression expression() {
-		return equality();
+		return ternary();
+	}
+
+	private Expression ternary() {
+		Expression expression = equality();
+
+		while (match(QUESTION)) {
+			Expression left = equality();
+			consume(COLON, "Expect ':' after ternary");
+			Expression right = equality();
+			expression = new Expression.Ternary(expression, left, right);
+		}
+
+		return expression;
 	}
 
 	private Expression equality() {
@@ -151,6 +164,11 @@ public class Parser {
 			Token operator = previous();
 			Expression right = unary();
 			return new Expression.Unary(operator, right);
+		}
+
+		//+, /, and * must have left-hand operands!
+		if (match(PLUS, SLASH, STAR)) {
+			throw error(previous(), "Operator '" + previous().lexeme + "' must have a left-hand operand.");
 		}
 
 		return primary();

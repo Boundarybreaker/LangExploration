@@ -11,6 +11,7 @@ abstract class Expression {
 		R visitGroupingExpression(Grouping expression);
 		R visitLiteralExpression(Literal expression);
 		R visitUnaryExpression(Unary expression);
+		R visitTernaryExpression(Ternary expression);
 	}
 
 	static class Binary extends Expression {
@@ -68,6 +69,23 @@ abstract class Expression {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitUnaryExpression(this);
+		}
+	}
+
+	static class Ternary extends Expression {
+		 final Expression condition;
+		 final Expression positive;
+		 final Expression negative;
+
+		Ternary(Expression condition, Expression positive, Expression negative) {
+			this.condition = condition;
+			this.positive = positive;
+			this.negative = negative;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitTernaryExpression(this);
 		}
 	}
 }
