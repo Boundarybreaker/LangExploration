@@ -113,10 +113,11 @@ public class Parser {
 		Expression expression = equality();
 
 		while (match(QUESTION)) {
+			Token question = previous();
 			Expression left = equality();
 			consume(COLON, "Expect ':' after ternary");
 			Expression right = equality();
-			expression = new Expression.Ternary(expression, left, right);
+			expression = new Expression.Ternary(question, expression, left, right);
 		}
 
 		return expression;
@@ -145,6 +146,8 @@ public class Parser {
 
 		return expression;
 	}
+
+	//TODO: bitwise goes here
 
 	private Expression addition() {
 		Expression expression = multiplication();

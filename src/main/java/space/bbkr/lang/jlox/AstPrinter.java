@@ -7,8 +7,9 @@ public class AstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
-	public String visitBinaryExpression(Expression.Binary expression) {
-		return parenthesize(expression.operator.lexeme, expression.left, expression.right);
+	public String visitLiteralExpression(Expression.Literal expression) {
+		if (expression.value == null) return "nil";
+		return expression.value.toString();
 	}
 
 	@Override
@@ -17,14 +18,18 @@ public class AstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
-	public String visitLiteralExpression(Expression.Literal expression) {
-		if (expression.value == null) return "nil";
-		return expression.value.toString();
+	public String visitBlockExpression(Expression.Block expression) {
+		return parenthesize("block", expression.left, expression.right);
 	}
 
 	@Override
 	public String visitUnaryExpression(Expression.Unary expression) {
 		return parenthesize(expression.operator.lexeme, expression.right);
+	}
+
+	@Override
+	public String visitBinaryExpression(Expression.Binary expression) {
+		return parenthesize(expression.operator.lexeme, expression.left, expression.right);
 	}
 
 	@Override
@@ -36,11 +41,6 @@ public class AstPrinter implements Expression.Visitor<String> {
 		builder.append(print(expression.negative));
 		builder.append(")");
 		return builder.toString();
-	}
-
-	@Override
-	public String visitBlockExpression(Expression.Block expression) {
-		return parenthesize("block", expression.left, expression.right);
 	}
 
 	private String parenthesize(String name, Expression... expressions) {

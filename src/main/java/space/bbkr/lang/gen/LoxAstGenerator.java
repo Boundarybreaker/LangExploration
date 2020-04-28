@@ -13,12 +13,12 @@ public class LoxAstGenerator {
 		}
 		String outputDir = args[0];
 		defineAst(outputDir, "Expression", Arrays.asList(
-				"Binary: Expression left, Token operator, Expression right",
-				"Grouping: Expression expression",
 				"Literal: Object value",
+				"Grouping: Expression expression",
+				"Block: Expression left, Expression right",
 				"Unary: Token operator, Expression right",
-				"Ternary: Expression condition, Expression positive, Expression negative",
-				"Block: Expression left, Expression right"
+				"Binary: Expression left, Token operator, Expression right",
+				"Ternary: Token question, Expression condition, Expression positive, Expression negative"
 		));
 	}
 

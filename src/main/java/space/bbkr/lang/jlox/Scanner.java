@@ -47,6 +47,7 @@ class Scanner {
 			case '?': addToken(QUESTION); break;
 			case ';': addToken(SEMICOLON); break;
 			case '*': addToken(STAR); break;
+			//TODO: & and |
 
 			//slash does comments as well
 			case '/': {
