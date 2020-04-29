@@ -24,6 +24,7 @@ public class LoxAstGenerator {
 		));
 
 		defineAst(outputDir, "Statement", Arrays.asList(
+				"Block: List<Statement> statements",
 				"Var: Token name, Expression initializer",
 				"Expression: Expression expression",
 				"Print: Expression expression"

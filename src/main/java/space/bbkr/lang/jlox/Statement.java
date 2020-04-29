@@ -7,9 +7,23 @@ abstract class Statement {
 	abstract <R> R accept(Visitor<R> visitor);
 
 	interface Visitor<R> {
+		R visitBlockStatement(BlockStatement statement);
 		R visitVarStatement(VarStatement statement);
 		R visitExpressionStatement(ExpressionStatement statement);
 		R visitPrintStatement(PrintStatement statement);
+	}
+
+	static class BlockStatement extends Statement {
+		 final List<Statement> statements;
+
+		BlockStatement(List<Statement> statements) {
+			this.statements = statements;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitBlockStatement(this);
+		}
 	}
 
 	static class VarStatement extends Statement {

@@ -15,12 +15,29 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 		}
 	}
 
+	String eval(Expression expression) {
+		return stringify(evaluate(expression));
+	}
+
 	private Object evaluate(Expression expression) {
 		return expression.accept(this);
 	}
 
 	private void execute(Statement statement) {
 		statement.accept(this);
+	}
+
+	private void executeBlock(List<Statement> statements, Environment environment) {
+		Environment previous = this.environment;
+		try {
+			this.environment = environment;
+
+			for (Statement statement : statements) {
+				execute(statement);
+			}
+		} finally {
+			this.environment = previous;
+		}
 	}
 
 	@Override
@@ -131,6 +148,12 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 			}
 		}
 		throw new RuntimeError("TypeError", expression.question, "Operand in ternary must be a boolean, but was " + result.toString() + " instead.");
+	}
+
+	@Override
+	public Void visitBlockStatement(Statement.BlockStatement statement) {
+		executeBlock(statement.statements, new Environment(environment));
+		return null;
 	}
 
 	@Override

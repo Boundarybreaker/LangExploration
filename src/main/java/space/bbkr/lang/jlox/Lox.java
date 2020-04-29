@@ -26,7 +26,7 @@ public class Lox {
 
 	private static void runFile(String path) throws IOException {
 		byte[] bytes = Files.readAllBytes(Paths.get(path));
-		run(new String(bytes, Charset.defaultCharset()));
+		run(new String(bytes, Charset.defaultCharset()), false);
 		if (hadError) System.exit(65);
 		if (hadRuntimeError) System.exit(70);
 	}
@@ -43,7 +43,7 @@ public class Lox {
 			if (read.equals("::exit")) {
 				running = false;
 			} else {
-				run(reader.readLine());
+				run(reader.readLine(), true);
 				hadError = false;
 			}
 		}
@@ -52,15 +52,20 @@ public class Lox {
 		System.exit(0);
 	}
 
-	private static void run(String source) {
+	private static void run(String source, boolean repl) {
 		Scanner scanner = new Scanner(source);
 		List<Token> tokens = scanner.scanTokens();
 		Parser parser = new Parser(tokens);
-		List<Statement> statements = parser.parse();
+		if (repl && !hasType(tokens, TokenType.SEMICOLON)) { //no semicolon, so they probably want an expression
+			Expression expression = parser.parseExpression();
+			if (hadError) return;
+			System.out.println(interpreter.eval(expression));
+		} else {
+			List<Statement> statements = parser.parse();
+			if (hadError) return;
 
-		if (hadError) return;
-
-		interpreter.interpret(statements);
+			interpreter.interpret(statements);
+		}
 	}
 
 	static void error(int line, String message) {
@@ -83,6 +88,15 @@ public class Lox {
 	private static void report(int line, String where, String message) {
 		System.err.println("[line " + line + "] Error" + where + ": " + message);
 		hadError = true;
+	}
+
+	private static boolean hasType(List<Token> tokens, TokenType type) {
+		for (Token token : tokens) {
+			if (token.type == type) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }

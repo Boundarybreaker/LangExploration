@@ -23,6 +23,10 @@ public class Parser {
 		return statements;
 	}
 
+	Expression parseExpression() {
+		return expression();
+	}
+
 	//movement
 	private Token advance() {
 		if (!isAtEnd()) current++;
@@ -91,6 +95,26 @@ public class Parser {
 		return peek().type == type;
 	}
 
+	//actual parsing
+	private Statement statement() {
+		if (match(PRINT)) return printStatement();
+		if (match(LEFT_BRACE)) return new Statement.BlockStatement(blockStatement());
+
+		return expressionStatement();
+	}
+
+	private List<Statement> blockStatement() {
+		List<Statement> statements = new ArrayList<>();
+
+		while (!check(RIGHT_BRACE) && !isAtEnd()) {
+			statements.add(declaration());
+		}
+
+		consume(RIGHT_BRACE, "Expect '}' after block.");
+
+		return statements;
+	}
+
 	private Statement declaration() {
 		try {
 			if (match(VAR)) return varDelcaration();
@@ -114,13 +138,6 @@ public class Parser {
 		return new Statement.VarStatement(name, initializer);
 	}
 
-	//actual parsing
-	private Statement statement() {
-		if (match(PRINT)) return printStatement();
-
-		return expressionStatement();
-	}
-
 	//TODO: remove once standard lib is working
 	private Statement printStatement() {
 		Expression value = expression();
@@ -139,7 +156,7 @@ public class Parser {
 	}
 
 	private Expression assignment() {
-		Expression expression = block();
+		Expression expression = blockExpression();
 
 		if (match(EQUAL)) {
 			Token equals = previous();
@@ -155,7 +172,7 @@ public class Parser {
 		return expression;
 	}
 
-	private Expression block() {
+	private Expression blockExpression() {
 		Expression expression = ternary();
 
 		while (match(COMMA)) {
