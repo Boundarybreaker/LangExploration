@@ -1,11 +1,14 @@
 package space.bbkr.lang.jlox;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void> {
 	final Environment globals = new Environment();
 	private Environment environment = globals;
+	private final Map<Expression, Integer> locals = new HashMap<>();
 
 	Interpreter() {
 		globals.define("print", new LoxCallable() {
@@ -82,14 +85,14 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	public Object visitAssignExpression(Expression.AssignExpression expression) {
 		Object value = evaluate(expression.value);
 
-		environment.assign(expression.name, value);
-		return value;
-	}
+		Integer distance = locals.get(expression);
+		if (distance != null) {
+			environment.assignAt(distance, expression.name, value);
+		} else {
+			globals.assign(expression.name, value);
+		}
 
-	@Override
-	public Object visitBlockExpression(Expression.BlockExpression expression) {
-		evaluate(expression.left);
-		return evaluate(expression.right);
+		return value;
 	}
 
 	@Override
@@ -209,7 +212,7 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 
 	@Override
 	public Object visitVariableExpression(Expression.VariableExpression expression) {
-		return environment.get(expression.name);
+		return lookupVariable(expression.name, expression);
 	}
 
 	@Override
@@ -283,6 +286,19 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	public Void visitExpressionStatement(Statement.ExpressionStatement statement) {
 		evaluate(statement.expression);
 		return null;
+	}
+
+	void resolve(Expression expression, int depth) {
+		locals.put(expression, depth);
+	}
+
+	private Object lookupVariable(Token name, Expression expression) {
+		Integer distance = locals.get(expression); //boxed for nullability
+		if (distance != null) {
+			return environment.getAt(distance, name.lexeme);
+		} else {
+			return globals.get(name);
+		}
 	}
 
 	private double checkDoubleOperand(Token operator, Object operand) {

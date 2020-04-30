@@ -10,7 +10,6 @@ abstract class Expression {
 
 	interface Visitor<R> {
 		R visitAssignExpression(AssignExpression expression);
-		R visitBlockExpression(BlockExpression expression);
 		R visitTernaryExpression(TernaryExpression expression);
 		R visitLogicalExpression(LogicalExpression expression);
 		R visitBinaryExpression(BinaryExpression expression);
@@ -34,21 +33,6 @@ abstract class Expression {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitAssignExpression(this);
-		}
-	}
-
-	static class BlockExpression extends Expression {
-		 final Expression left;
-		 final Expression right;
-
-		BlockExpression(Expression left, Expression right) {
-			this.left = left;
-			this.right = right;
-		}
-
-		@Override
-		<R> R accept(Visitor<R> visitor) {
-			return visitor.visitBlockExpression(this);
 		}
 	}
 

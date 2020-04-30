@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class Lox {
@@ -59,9 +61,29 @@ public class Lox {
 		if (repl && !hasType(tokens, TokenType.SEMICOLON)) { //no semicolon, so they probably want an expression
 			Expression expression = parser.parseExpression();
 			if (hadError) return;
-			System.out.println(interpreter.stringEval(expression));
+
+			List<Statement> statements = Collections.singletonList(
+					new Statement.ExpressionStatement(
+							new Expression.CallExpression(
+									new Expression.VariableExpression(new Token(TokenType.IDENTIFIER, "print", null, 1)),
+									new Token(TokenType.LEFT_PAREN, "> ", null, 1),
+									Collections.singletonList(expression))
+					)
+			);
+
+			Resolver resolver = new Resolver(interpreter);
+			resolver.resolve(statements);
+
+			if (hadError) return;
+
+			interpreter.interpret(statements);
 		} else {
 			List<Statement> statements = parser.parse();
+			if (hadError) return;
+
+			Resolver resolver = new Resolver(interpreter);
+			resolver.resolve(statements);
+
 			if (hadError) return;
 
 			interpreter.interpret(statements);

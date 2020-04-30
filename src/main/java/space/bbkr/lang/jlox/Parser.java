@@ -297,7 +297,6 @@ public class Parser {
 	}
 
 	private Expression assignment() {
-//		Expression expression = blockExpression();
 		Expression expression = ternary();
 
 		if (match(EQUAL)) {
@@ -311,18 +310,6 @@ public class Parser {
 
 			throw error(equals, "Invalid assignment target.");
 		}
-		return expression;
-	}
-
-	//TODO: interferes with method calls, worth fixing?
-	private Expression blockExpression() {
-		Expression expression = ternary();
-
-		while (match(COMMA)) {
-			Expression right = ternary();
-			expression = new Expression.BlockExpression(expression, right);
-		}
-
 		return expression;
 	}
 
@@ -429,6 +416,7 @@ public class Parser {
 		return call();
 	}
 
+	//TODO: compile-time type checking, compile-time function assessment
 	private Expression call() {
 		Expression expression = primary();
 

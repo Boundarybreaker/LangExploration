@@ -12,11 +12,6 @@ public class AstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
-	public String visitBlockExpression(Expression.BlockExpression expression) {
-		return parenthesize("block", expression.left, expression.right);
-	}
-
-	@Override
 	public String visitTernaryExpression(Expression.TernaryExpression expression) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("(? ");
