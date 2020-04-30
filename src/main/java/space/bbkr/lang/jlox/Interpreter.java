@@ -246,7 +246,7 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	}
 
 	@Override
-	public Void visitBreakStatement(Statement.BreakStatement statement)k {
+	public Void visitBreakStatement(Statement.BreakStatement statement) {
 		throw new Break();
 	}
 
