@@ -197,6 +197,7 @@ class Scanner {
 
 	static {
 		KEYWORDS.put("and", AND);
+		KEYWORDS.put("break", BREAK);
 		KEYWORDS.put("class", CLASS);
 		KEYWORDS.put("else", ELSE);
 		KEYWORDS.put("false", FALSE);
@@ -205,7 +206,6 @@ class Scanner {
 		KEYWORDS.put("if", IF);
 		KEYWORDS.put("nil", NIL);
 		KEYWORDS.put("or", OR);
-		KEYWORDS.put("print", PRINT);
 		KEYWORDS.put("return", RETURN);
 		KEYWORDS.put("super", SUPER);
 		KEYWORDS.put("this", THIS);

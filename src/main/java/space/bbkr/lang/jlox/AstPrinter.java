@@ -7,39 +7,13 @@ public class AstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
-	public String visitLiteralExpression(Expression.LiteralExpression expression) {
-		if (expression.value == null) return "nil";
-		return expression.value.toString();
-	}
-
-	@Override
-	public String visitVariableExpression(Expression.VariableExpression expression) {
-		return "(var " + expression.name.lexeme +")";
-	}
-
-	@Override
 	public String visitAssignExpression(Expression.AssignExpression expression) {
 		return ("= " + expression.name.lexeme + print(expression.value));
 	}
 
 	@Override
-	public String visitGroupingExpression(Expression.GroupingExpression expression) {
-		return parenthesize("group", expression.expression);
-	}
-
-	@Override
 	public String visitBlockExpression(Expression.BlockExpression expression) {
 		return parenthesize("block", expression.left, expression.right);
-	}
-
-	@Override
-	public String visitUnaryExpression(Expression.UnaryExpression expression) {
-		return parenthesize(expression.operator.lexeme, expression.right);
-	}
-
-	@Override
-	public String visitBinaryExpression(Expression.BinaryExpression expression) {
-		return parenthesize(expression.operator.lexeme, expression.left, expression.right);
 	}
 
 	@Override
@@ -51,6 +25,42 @@ public class AstPrinter implements Expression.Visitor<String> {
 		builder.append(print(expression.negative));
 		builder.append(")");
 		return builder.toString();
+	}
+
+	@Override
+	public String visitLogicalExpression(Expression.LogicalExpression expression) {
+		return parenthesize("and", expression.left, expression.right);
+	}
+
+	@Override
+	public String visitBinaryExpression(Expression.BinaryExpression expression) {
+		return parenthesize(expression.operator.lexeme, expression.left, expression.right);
+	}
+
+	@Override
+	public String visitUnaryExpression(Expression.UnaryExpression expression) {
+		return parenthesize(expression.operator.lexeme, expression.right);
+	}
+
+	@Override
+	public String visitCallExpression(Expression.CallExpression expression) {
+		return parenthesize("call", expression.arguments.toArray(new Expression[0]));
+	}
+
+	@Override
+	public String visitLiteralExpression(Expression.LiteralExpression expression) {
+		if (expression.value == null) return "nil";
+		return expression.value.toString();
+	}
+
+	@Override
+	public String visitVariableExpression(Expression.VariableExpression expression) {
+		return "(var " + expression.name.lexeme +")";
+	}
+
+	@Override
+	public String visitGroupingExpression(Expression.GroupingExpression expression) {
+		return parenthesize("group", expression.expression);
 	}
 
 	private String parenthesize(String name, Expression... expressions) {

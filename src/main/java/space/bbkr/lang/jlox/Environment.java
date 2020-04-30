@@ -27,7 +27,7 @@ public class Environment {
 
 		if (enclosing != null) return enclosing.get(name);
 
-		throw new RuntimeError("UndefinedError", name, "Undefined variable '" + name.lexeme + "'.");
+		throw new RuntimeError("DefError", name, "Undefined variable '" + name.lexeme + "'.");
 	}
 
 	void define(String name, @Nullable Object value) {
@@ -64,6 +64,6 @@ public class Environment {
 			return;
 		}
 
-		throw new RuntimeError("UndefinedError", name, "Undefined variable '" + name.lexeme + "'.");
+		throw new RuntimeError("DefError", name, "Undefined variable '" + name.lexeme + "'.");
 	}
 }

@@ -3,6 +3,7 @@ package space.bbkr.lang.jlox;
 import static space.bbkr.lang.jlox.TokenType.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Parser {
@@ -66,7 +67,6 @@ public class Parser {
 				case FOR:
 				case IF:
 				case WHILE:
-				case PRINT:
 				case RETURN:
 					return;
 			}
@@ -97,10 +97,97 @@ public class Parser {
 
 	//actual parsing
 	private Statement statement() {
-		if (match(PRINT)) return printStatement();
+		if (match(IF)) return ifStatement();
+		if (match(RETURN)) return returnStatement();
+		if (match(FOR)) return forStatement();
+		if (match(WHILE)) return whileStatement();
+		if (match(BREAK)) return breakStatement();
 		if (match(LEFT_BRACE)) return new Statement.BlockStatement(blockStatement());
 
 		return expressionStatement();
+	}
+
+	private Statement ifStatement() {
+		Token keyword = previous();
+		consume(LEFT_PAREN, "Expect '(' after 'if'.");
+		Expression condition = expression();
+		consume(RIGHT_PAREN, "Expect ')' after if condition.");
+
+		Statement thenBranch = statement();
+		Statement elseBranch = null;
+		if (match(ELSE)) {
+			elseBranch = statement();
+		}
+
+		return new Statement.IfStatement(keyword, condition, thenBranch, elseBranch);
+	}
+
+	private Statement returnStatement() {
+		Token keyword = previous();
+		Expression value = null;
+		if (!check(SEMICOLON)) {
+			value = expression();
+		}
+
+		consume(SEMICOLON, "Expect ';' after return value.");
+		return new Statement.ReturnStatement(keyword, value);
+	}
+
+	private Statement forStatement() {
+		Token keyword = previous();
+		consume(LEFT_PAREN, "Expect '(' after 'for'.");
+
+		Statement initializer;
+		if (match(SEMICOLON)) {
+			initializer = null;
+		} else if (match(VAR)) {
+			initializer = varDeclaration();
+		} else {
+			initializer = expressionStatement();
+		}
+
+		Expression condition = null;
+		if (!check(SEMICOLON)) {
+			condition = expression();
+		}
+		consume(SEMICOLON, "Expect ';' after loop condition.");
+
+		Expression increment = null;
+		if (!check(RIGHT_PAREN)) {
+			increment = expression();
+		}
+		consume(RIGHT_PAREN, "Expect ')' after for clauses.");
+
+		Statement body = statement();
+
+		if (increment != null) {
+			body = new Statement.BlockStatement(Arrays.asList(body, new Statement.ExpressionStatement(increment)));
+		}
+
+		if (condition == null) condition = new Expression.LiteralExpression(true);
+		body = new Statement.WhileStatement(keyword, condition, body);
+
+		if (initializer != null) {
+			body = new Statement.BlockStatement(Arrays.asList(initializer, body));
+		}
+
+		return body;
+	}
+
+	private Statement whileStatement() {
+		Token keyword = previous();
+		consume(LEFT_PAREN, "Expect '(' after 'while'.");
+		Expression condition = expression();
+		consume(RIGHT_PAREN, "Expect ')' after condition.");
+		Statement body = statement();
+
+		return new Statement.WhileStatement(keyword, condition, body);
+	}
+
+	private Statement breakStatement() {
+		Token keyword = previous();
+		consume(SEMICOLON, "Expect ';' after break statement.");
+		return new Statement.BreakStatement(keyword);
 	}
 
 	private List<Statement> blockStatement() {
@@ -117,7 +204,8 @@ public class Parser {
 
 	private Statement declaration() {
 		try {
-			if (match(VAR)) return varDelcaration();
+			if (match(FUN)) return function("function");
+			if (match(VAR)) return varDeclaration();
 
 			return statement();
 		} catch (ParseError error) {
@@ -126,7 +214,28 @@ public class Parser {
 		}
 	}
 
-	private Statement varDelcaration() {
+	//TODO: type definitions?
+	private Statement.FunctionStatement function(String kind) { //TODO: type def of parameters, return
+		Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+		consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+		List<Token> parameters = new ArrayList<>();
+		if (!check(RIGHT_PAREN)) {
+			do {
+				if (parameters.size() >= 255) {
+					error(peek(), "Cannot have more than 255 parameters.");
+				}
+
+				parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+			} while (match(COMMA));
+		}
+		consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+		consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+		List<Statement> body = blockStatement();
+		return new Statement.FunctionStatement(name, parameters, body);
+	}
+
+	private Statement varDeclaration() {
 		Token name = consume(IDENTIFIER, "Expect variable name.");
 		Expression initializer = null;
 
@@ -136,13 +245,6 @@ public class Parser {
 
 		consume(SEMICOLON, "Expect ';' after variable declaration");
 		return new Statement.VarStatement(name, initializer);
-	}
-
-	//TODO: remove once standard lib is working
-	private Statement printStatement() {
-		Expression value = expression();
-		consume(SEMICOLON, "Expect ';' after value.");
-		return new Statement.PrintStatement(value);
 	}
 
 	private Statement expressionStatement() {
@@ -156,7 +258,8 @@ public class Parser {
 	}
 
 	private Expression assignment() {
-		Expression expression = blockExpression();
+//		Expression expression = blockExpression();
+		Expression expression = ternary();
 
 		if (match(EQUAL)) {
 			Token equals = previous();
@@ -172,6 +275,7 @@ public class Parser {
 		return expression;
 	}
 
+	//TODO: interferes with method calls, worth fixing?
 	private Expression blockExpression() {
 		Expression expression = ternary();
 
@@ -184,14 +288,38 @@ public class Parser {
 	}
 
 	private Expression ternary() {
-		Expression expression = equality();
+		Expression expression = or();
 
 		while (match(QUESTION)) {
 			Token question = previous();
-			Expression left = equality();
+			Expression left = or();
 			consume(COLON, "Expect ':' after ternary");
-			Expression right = equality();
+			Expression right = or();
 			expression = new Expression.TernaryExpression(question, expression, left, right);
+		}
+
+		return expression;
+	}
+
+	private Expression or() {
+		Expression expression = and();
+
+		while (match(OR)) {
+			Token operator = previous();
+			Expression right = and();
+			expression = new Expression.LogicalExpression(expression, operator, right);
+		}
+
+		return expression;
+	}
+
+	private Expression and() {
+		Expression expression = equality();
+
+		while (match(AND)) {
+			Token operator = previous();
+			Expression right = equality();
+			expression = new Expression.LogicalExpression(expression, operator, right);
 		}
 
 		return expression;
@@ -259,7 +387,37 @@ public class Parser {
 			throw error(previous(), "Operator '" + previous().lexeme + "' must have a left-hand operand.");
 		}
 
-		return primary();
+		return call();
+	}
+
+	private Expression call() {
+		Expression expression = primary();
+
+		while (true) {
+			if (match(LEFT_PAREN)) {
+				expression = finishCall(expression);
+			} else {
+				break;
+			}
+		}
+
+		return expression;
+	}
+
+	private Expression finishCall(Expression callee) {
+		List<Expression> arguments = new ArrayList<>();
+		if (!check(RIGHT_PAREN)) {
+			do {
+				if (arguments.size() >= 255) {
+					error(peek(), "Cannot have more than 255 arguments.");
+				}
+				arguments.add(expression());
+			} while (match(COMMA));
+		}
+
+		Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
+
+		return new Expression.CallExpression(callee, paren, arguments);
 	}
 
 	private Expression primary() {

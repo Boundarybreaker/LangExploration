@@ -2,15 +2,85 @@ package space.bbkr.lang.jlox;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 abstract class Statement {
 
 	abstract <R> R accept(Visitor<R> visitor);
 
 	interface Visitor<R> {
+		R visitIfStatement(IfStatement statement);
+		R visitReturnStatement(ReturnStatement statement);
+		R visitWhileStatement(WhileStatement statement);
+		R visitBreakStatement(BreakStatement statement);
 		R visitBlockStatement(BlockStatement statement);
+		R visitFunctionStatement(FunctionStatement statement);
 		R visitVarStatement(VarStatement statement);
 		R visitExpressionStatement(ExpressionStatement statement);
-		R visitPrintStatement(PrintStatement statement);
+	}
+
+	static class IfStatement extends Statement {
+		 final Token keyword;
+		 final Expression condition;
+		 final Statement thenBranch;
+		 final @Nullable Statement elseBranch;
+
+		IfStatement(Token keyword, Expression condition, Statement thenBranch, @Nullable Statement elseBranch) {
+			this.keyword = keyword;
+			this.condition = condition;
+			this.thenBranch = thenBranch;
+			this.elseBranch = elseBranch;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitIfStatement(this);
+		}
+	}
+
+	static class ReturnStatement extends Statement {
+		 final Token keyword;
+		 final Expression value;
+
+		ReturnStatement(Token keyword, Expression value) {
+			this.keyword = keyword;
+			this.value = value;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitReturnStatement(this);
+		}
+	}
+
+	static class WhileStatement extends Statement {
+		 final Token keyword;
+		 final Expression condition;
+		 final Statement body;
+
+		WhileStatement(Token keyword, Expression condition, Statement body) {
+			this.keyword = keyword;
+			this.condition = condition;
+			this.body = body;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitWhileStatement(this);
+		}
+	}
+
+	static class BreakStatement extends Statement {
+		 final Token keyword;
+
+		BreakStatement(Token keyword) {
+			this.keyword = keyword;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitBreakStatement(this);
+		}
 	}
 
 	static class BlockStatement extends Statement {
@@ -26,11 +96,28 @@ abstract class Statement {
 		}
 	}
 
+	static class FunctionStatement extends Statement {
+		 final Token name;
+		 final List<Token> parms;
+		 final List<Statement> body;
+
+		FunctionStatement(Token name, List<Token> parms, List<Statement> body) {
+			this.name = name;
+			this.parms = parms;
+			this.body = body;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitFunctionStatement(this);
+		}
+	}
+
 	static class VarStatement extends Statement {
 		 final Token name;
-		 final Expression initializer;
+		 final @Nullable Expression initializer;
 
-		VarStatement(Token name, Expression initializer) {
+		VarStatement(Token name, @Nullable Expression initializer) {
 			this.name = name;
 			this.initializer = initializer;
 		}
@@ -51,19 +138,6 @@ abstract class Statement {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitExpressionStatement(this);
-		}
-	}
-
-	static class PrintStatement extends Statement {
-		 final Expression expression;
-
-		PrintStatement(Expression expression) {
-			this.expression = expression;
-		}
-
-		@Override
-		<R> R accept(Visitor<R> visitor) {
-			return visitor.visitPrintStatement(this);
 		}
 	}
 }

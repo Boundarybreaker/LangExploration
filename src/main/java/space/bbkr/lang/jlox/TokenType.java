@@ -12,8 +12,7 @@ enum TokenType {
 	IDENTIFIER, STRING, NUMBER,
 
 	//keywords
-	//TODO: move print to standard lib
-	AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
+	AND, BREAK, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
 
 	//eof
 	EOF

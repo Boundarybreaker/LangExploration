@@ -59,7 +59,7 @@ public class Lox {
 		if (repl && !hasType(tokens, TokenType.SEMICOLON)) { //no semicolon, so they probably want an expression
 			Expression expression = parser.parseExpression();
 			if (hadError) return;
-			System.out.println(interpreter.eval(expression));
+			System.out.println(interpreter.stringEval(expression));
 		} else {
 			List<Statement> statements = parser.parse();
 			if (hadError) return;
@@ -86,7 +86,7 @@ public class Lox {
 	}
 
 	private static void report(int line, String where, String message) {
-		System.err.println("[line " + line + "] Error" + where + ": " + message);
+		System.err.println("[line " + line + "] Error " + where + ": " + message);
 		hadError = true;
 	}
 

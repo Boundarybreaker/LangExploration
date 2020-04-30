@@ -1,11 +1,13 @@
-print "one";
-print true;
-print 2 + 1;
-var a = 1;
-var b = 2;
-print a + b;
-{
-    var c = a - 2;
-    print c;
+fun fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 2) + fibonacci(n - 1);
 }
 
+for (var i = 0; i < 20; i = i + 1) {
+    var fib = fibonacci(i);
+    print(fib);
+    if (fib == 610) {
+        print("610 is a fibonacci number!");
+        break;
+    }
+}

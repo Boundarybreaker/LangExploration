@@ -13,21 +13,27 @@ public class LoxAstGenerator {
 		}
 		String outputDir = args[0];
 		defineAst(outputDir, "Expression", Arrays.asList(
-				"Literal: Object value",
-				"Variable: Token name",
 				"Assign: Token name, Expression value",
-				"Grouping: Expression expression",
 				"Block: Expression left, Expression right",
-				"Unary: Token operator, Expression right",
+				"Ternary: Token question, Expression condition, Expression positive, Expression negative",
+				"Logical: Expression left, Token operator, Expression right",
 				"Binary: Expression left, Token operator, Expression right",
-				"Ternary: Token question, Expression condition, Expression positive, Expression negative"
+				"Unary: Token operator, Expression right",
+				"Call: Expression callee, Token paren, List<Expression> arguments",
+				"Literal: @Nullable Object value",
+				"Variable: Token name",
+				"Grouping: Expression expression"
 		));
 
 		defineAst(outputDir, "Statement", Arrays.asList(
+				"If: Token keyword, Expression condition, Statement thenBranch, @Nullable Statement elseBranch",
+				"Return: Token keyword, @Nullable Expression value",
+				"While: Token keyword, Expression condition, Statement body",
+				"Break: Token keyword",
 				"Block: List<Statement> statements",
-				"Var: Token name, Expression initializer",
-				"Expression: Expression expression",
-				"Print: Expression expression"
+				"Function: Token name, List<Token> parms, List<Statement> body",
+				"Var: Token name, @Nullable Expression initializer",
+				"Expression: Expression expression"
 		));
 	}
 
@@ -39,6 +45,8 @@ public class LoxAstGenerator {
 		writer.println("package space.bbkr.lang.jlox;");
 		writer.println();
 		writer.println("import java.util.List;");
+		writer.println();
+		writer.println("import javax.annotation.Nullable;");
 		writer.println();
 		writer.println("abstract class " + baseName + " {");
 		writer.println();
@@ -85,7 +93,8 @@ public class LoxAstGenerator {
 		writer.println();
 		writer.println("\t\t" + className + baseName + "(" + fieldList + ") {");
 		for (String field : fields) {
-			String name = field.split(" ")[1];
+			String[] split = field.split(" ");
+			String name = split[0].equals("@Nullable")? split[2] : split[1];
 			writer.println("\t\t\tthis." + name + " = " + name + ";");
 		}
 		writer.println("\t\t}");
