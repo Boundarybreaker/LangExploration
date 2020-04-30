@@ -19,6 +19,7 @@ abstract class Expression {
 		R visitLiteralExpression(LiteralExpression expression);
 		R visitVariableExpression(VariableExpression expression);
 		R visitGroupingExpression(GroupingExpression expression);
+		R visitFunctionExpression(FunctionExpression expression);
 	}
 
 	static class AssignExpression extends Expression {
@@ -172,6 +173,19 @@ abstract class Expression {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitGroupingExpression(this);
+		}
+	}
+
+	static class FunctionExpression extends Expression {
+		 final Statement.FunctionStatement function;
+
+		FunctionExpression(Statement.FunctionStatement function) {
+			this.function = function;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitFunctionExpression(this);
 		}
 	}
 }

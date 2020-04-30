@@ -40,9 +40,9 @@ abstract class Statement {
 
 	static class ReturnStatement extends Statement {
 		 final Token keyword;
-		 final Expression value;
+		 final @Nullable Expression value;
 
-		ReturnStatement(Token keyword, Expression value) {
+		ReturnStatement(Token keyword, @Nullable Expression value) {
 			this.keyword = keyword;
 			this.value = value;
 		}
@@ -97,11 +97,11 @@ abstract class Statement {
 	}
 
 	static class FunctionStatement extends Statement {
-		 final Token name;
+		 final @Nullable Token name;
 		 final List<Token> parms;
 		 final List<Statement> body;
 
-		FunctionStatement(Token name, List<Token> parms, List<Statement> body) {
+		FunctionStatement(@Nullable Token name, List<Token> parms, List<Statement> body) {
 			this.name = name;
 			this.parms = parms;
 			this.body = body;

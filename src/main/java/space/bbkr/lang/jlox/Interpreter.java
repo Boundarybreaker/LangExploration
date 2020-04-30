@@ -218,6 +218,11 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	}
 
 	@Override
+	public Object visitFunctionExpression(Expression.FunctionExpression expression) {
+		return new LoxFunction(expression.function, environment);
+	}
+
+	@Override
 	public Void visitIfStatement(Statement.IfStatement statement) {
 		boolean value = checkBooleanOperand(statement.keyword, evaluate(statement.condition));
 		if (value) {
@@ -259,7 +264,7 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	@Override
 	public Void visitFunctionStatement(Statement.FunctionStatement statement) {
 		LoxFunction function = new LoxFunction(statement, environment);
-		environment.define(statement.name.lexeme, function);
+		if (statement.name != null) environment.define(statement.name.lexeme, function);
 		return null;
 	}
 

@@ -64,6 +64,11 @@ class ReversePolishAstPrinter implements Expression.Visitor<String> {
 		return stack("group", expression.expression);
 	}
 
+	@Override
+	public String visitFunctionExpression(Expression.FunctionExpression expression) {
+		return stack("<function>");
+	}
+
 	private String stack(String name, Expression... expressions) {
 		StringBuilder builder = new StringBuilder();
 		for (Expression expression : expressions) {

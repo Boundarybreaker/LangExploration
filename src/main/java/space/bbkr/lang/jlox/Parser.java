@@ -28,20 +28,33 @@ public class Parser {
 		return expression();
 	}
 
-	//movement
+	/**
+	 * @return The next token in the script, incrementing the counter.
+	 */
 	private Token advance() {
 		if (!isAtEnd()) current++;
 		return previous();
 	}
 
+	/**
+	 * @return The next token in the script, not incrementing the counter.
+	 */
 	private Token peek() {
 		return tokens.get(current);
 	}
 
+	/**
+	 * @return The previous token in the script.
+	 */
 	private Token previous() {
 		return tokens.get(current - 1);
 	}
 
+	/**
+	 * @param type The type of token to consume.
+	 * @param message The message to give if the token isn't found.
+	 * @return The found token of the given type, or an exception is thrown.
+	 */
 	private Token consume(TokenType type, String message) {
 		if (check(type)) return advance();
 
@@ -49,11 +62,21 @@ public class Parser {
 	}
 
 	//handling
+
+	/**
+	 * Log and create an error while parsing.
+	 * @param token The token causing the error.
+	 * @param message The cause of the error.
+	 * @return The exception to throw.
+	 */
 	private ParseError error(Token token, String message) {
 		Lox.error(token, message);
 		return new ParseError();
 	}
 
+	/**
+	 * Continue to next safe statement after an error.
+	 */
 	private void synchronize() {
 		advance();
 
@@ -76,10 +99,18 @@ public class Parser {
 	}
 
 	//checking
+	/**
+	 * @return If at the end of the script
+	 */
 	private boolean isAtEnd() {
 		return peek().type == EOF;
 	}
 
+	/**
+	 * Increments.
+	 * @param types The possible tokens to check for.
+	 * @return Whether a token of any passed type was found.
+	 */
 	private boolean match(TokenType... types) {
 		for (TokenType type : types) {
 			if (check(type)) {
@@ -90,6 +121,11 @@ public class Parser {
 		return false;
 	}
 
+	/**
+	 * Does not increment.
+	 * @param type The type of token to check for.
+	 * @return Whether that type was found.
+	 */
 	private boolean check(TokenType type) {
 		if (isAtEnd()) return false;
 		return peek().type == type;
@@ -216,7 +252,10 @@ public class Parser {
 
 	//TODO: type definitions?
 	private Statement.FunctionStatement function(String kind) { //TODO: type def of parameters, return
-		Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+		Token name = null;
+		if (match(IDENTIFIER)) {
+			name = previous();
+		}
 		consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
 		List<Token> parameters = new ArrayList<>();
 		if (!check(RIGHT_PAREN)) {
@@ -424,6 +463,7 @@ public class Parser {
 		if (match(FALSE)) return new Expression.LiteralExpression(false);
 		if (match(TRUE)) return new Expression.LiteralExpression(true);
 		if (match(NIL)) return new Expression.LiteralExpression(null);
+		if (match(FUN)) return new Expression.FunctionExpression(function("function"));
 
 		if (match(NUMBER, STRING)) {
 			return new Expression.LiteralExpression(previous().literal);

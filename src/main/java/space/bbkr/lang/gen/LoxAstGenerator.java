@@ -22,7 +22,8 @@ public class LoxAstGenerator {
 				"Call: Expression callee, Token paren, List<Expression> arguments",
 				"Literal: @Nullable Object value",
 				"Variable: Token name",
-				"Grouping: Expression expression"
+				"Grouping: Expression expression",
+				"Function: Statement.FunctionStatement function"
 		));
 
 		defineAst(outputDir, "Statement", Arrays.asList(
@@ -31,7 +32,7 @@ public class LoxAstGenerator {
 				"While: Token keyword, Expression condition, Statement body",
 				"Break: Token keyword",
 				"Block: List<Statement> statements",
-				"Function: Token name, List<Token> parms, List<Statement> body",
+				"Function: @Nullable Token name, List<Token> parms, List<Statement> body",
 				"Var: Token name, @Nullable Expression initializer",
 				"Expression: Expression expression"
 		));

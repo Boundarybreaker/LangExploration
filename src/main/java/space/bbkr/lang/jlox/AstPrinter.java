@@ -63,6 +63,11 @@ public class AstPrinter implements Expression.Visitor<String> {
 		return parenthesize("group", expression.expression);
 	}
 
+	@Override
+	public String visitFunctionExpression(Expression.FunctionExpression expression) {
+		return parenthesize("<function>");
+	}
+
 	private String parenthesize(String name, Expression... expressions) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("(").append(name);
