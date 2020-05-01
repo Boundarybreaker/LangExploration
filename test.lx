@@ -22,3 +22,21 @@ fun thrice(fn) {
 thrice(fun (a) {
     print("lambda result " + a);
 });
+
+fun serve(clazz) {
+    return clazz().serveOn();
+}
+
+class DevonshireCream {
+    serveOn() {
+        return "scones";
+    }
+}
+
+print(serve(DevonshireCream));
+
+print(serve(class {
+    serveOn() {
+        return "biscuits";
+    }
+}));

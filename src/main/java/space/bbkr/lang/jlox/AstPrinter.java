@@ -43,9 +43,24 @@ public class AstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
+	public String visitGetExpression(Expression.GetExpression expression) {
+		return parenthesize("get", expression.object);
+	}
+
+	@Override
+	public String visitSetExpression(Expression.SetExpression expression) {
+		return parenthesize("set", expression.object, expression.value);
+	}
+
+	@Override
 	public String visitLiteralExpression(Expression.LiteralExpression expression) {
 		if (expression.value == null) return "nil";
 		return expression.value.toString();
+	}
+
+	@Override
+	public String visitThisExpression(Expression.ThisExpression expression) {
+		return "this";
 	}
 
 	@Override
@@ -56,6 +71,11 @@ public class AstPrinter implements Expression.Visitor<String> {
 	@Override
 	public String visitGroupingExpression(Expression.GroupingExpression expression) {
 		return parenthesize("group", expression.expression);
+	}
+
+	@Override
+	public String visitClassExpression(Expression.ClassExpression expression) {
+		return parenthesize("<class>");
 	}
 
 	@Override

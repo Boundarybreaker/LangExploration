@@ -20,19 +20,24 @@ public class LoxAstGenerator {
 				"Binary: Expression left, Token operator, Expression right",
 				"Unary: Token operator, Expression right",
 				"Call: Expression callee, Token paren, List<Expression> arguments",
-				"Literal: @Nullable Object value",
+				"Get: Expression object, Token name",
+				"Set: Expression object, Token name, Expression value",
+				"Literal: LoxType type, @Nullable Object value",
+				"This: Token keyword",
 				"Variable: Token name",
 				"Grouping: Expression expression",
+				"Class: Statement.ClassStatement clazz",
 				"Function: Statement.FunctionStatement function"
 		));
 
 		defineAst(outputDir, "Statement", Arrays.asList(
 				"If: Token keyword, Expression condition, Statement thenBranch, @Nullable Statement elseBranch",
-				"Return: Token keyword, @Nullable Expression value",
+				"Return: Token keyword, @Nullable Expression value, boolean hasType",
 				"While: Token keyword, Expression condition, Statement body",
 				"Break: Token keyword",
 				"Block: List<Statement> statements",
-				"Function: @Nullable Token name, List<Token> parms, List<Statement> body",
+				"Class: Token name, List<Statement.FunctionStatement> methods",
+				"Function: Token name, List<Token> parms, List<Statement> body",
 				"Var: Token name, @Nullable Expression initializer",
 				"Expression: Expression expression"
 		));

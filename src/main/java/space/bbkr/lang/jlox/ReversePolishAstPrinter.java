@@ -41,9 +41,24 @@ class ReversePolishAstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
+	public String visitGetExpression(Expression.GetExpression expression) {
+		return stack("get", expression.object);
+	}
+
+	@Override
+	public String visitSetExpression(Expression.SetExpression expression) {
+		return stack("set", expression.object, expression.value);
+	}
+
+	@Override
 	public String visitLiteralExpression(Expression.LiteralExpression expression) {
 		if (expression.value == null) return "nil";
 		return expression.value.toString();
+	}
+
+	@Override
+	public String visitThisExpression(Expression.ThisExpression expression) {
+		return "this";
 	}
 
 	@Override
@@ -54,6 +69,11 @@ class ReversePolishAstPrinter implements Expression.Visitor<String> {
 	@Override
 	public String visitGroupingExpression(Expression.GroupingExpression expression) {
 		return stack("group", expression.expression);
+	}
+
+	@Override
+	public String visitClassExpression(Expression.ClassExpression expression) {
+		return stack("<class>");
 	}
 
 	@Override

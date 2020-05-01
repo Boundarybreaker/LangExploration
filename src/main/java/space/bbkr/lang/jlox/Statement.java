@@ -14,6 +14,7 @@ abstract class Statement {
 		R visitWhileStatement(WhileStatement statement);
 		R visitBreakStatement(BreakStatement statement);
 		R visitBlockStatement(BlockStatement statement);
+		R visitClassStatement(ClassStatement statement);
 		R visitFunctionStatement(FunctionStatement statement);
 		R visitVarStatement(VarStatement statement);
 		R visitExpressionStatement(ExpressionStatement statement);
@@ -41,10 +42,12 @@ abstract class Statement {
 	static class ReturnStatement extends Statement {
 		 final Token keyword;
 		 final @Nullable Expression value;
+		 final boolean hasType;
 
-		ReturnStatement(Token keyword, @Nullable Expression value) {
+		ReturnStatement(Token keyword, @Nullable Expression value, boolean hasType) {
 			this.keyword = keyword;
 			this.value = value;
+			this.hasType = hasType;
 		}
 
 		@Override
@@ -96,12 +99,27 @@ abstract class Statement {
 		}
 	}
 
+	static class ClassStatement extends Statement {
+		 final Token name;
+		 final List<Statement.FunctionStatement> methods;
+
+		ClassStatement(Token name, List<Statement.FunctionStatement> methods) {
+			this.name = name;
+			this.methods = methods;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitClassStatement(this);
+		}
+	}
+
 	static class FunctionStatement extends Statement {
-		 final @Nullable Token name;
+		 final Token name;
 		 final List<Token> parms;
 		 final List<Statement> body;
 
-		FunctionStatement(@Nullable Token name, List<Token> parms, List<Statement> body) {
+		FunctionStatement(Token name, List<Token> parms, List<Statement> body) {
 			this.name = name;
 			this.parms = parms;
 			this.body = body;

@@ -1,14 +1,19 @@
 package space.bbkr.lang.jlox;
 
-import java.util.Objects;
-
 //TODO: improve once we have class heirarchy
 class LoxType {
-	static final LoxType NUMBER = new LoxType(TokenType.NUM, "number");
-	static final LoxType BOOLEAN = new LoxType(TokenType.BOOL, "boolean");
-	static final LoxType STRING = new LoxType(TokenType.STR, "string");
+	static final LoxType UNKNOWN = new LoxType(TokenType.NIL, "unknown");
+	static final LoxType NONE = new LoxType(TokenType.NIL, "none");
+	static final LoxType NUMBER = new LoxType(TokenType.NUMBER, "number");
+	static final LoxType BOOLEAN = new LoxType(TokenType.BOOLEAN, "boolean");
+	static final LoxType STRING = new LoxType(TokenType.STRING, "string");
 	static final LoxType FUNCTION = new LoxType(TokenType.FUN, "function");
-	static final LoxType CLASS = new LoxType(TokenType.CLASS, "class");
+	static LoxType CLASS(Token name)  {
+		return new ClassLoxType(name);
+	}
+	static final LoxType INSTANCE(Token name) {
+		return new InstanceLoxType(name);
+	}
 
 	final TokenType marker;
 	final String lexeme;
@@ -18,17 +23,7 @@ class LoxType {
 		this.lexeme = lexeme;
 	}
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		LoxType loxType = (LoxType) o;
-		return marker == loxType.marker &&
-				Objects.equals(lexeme, loxType.lexeme);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(marker, lexeme);
+	boolean matches(LoxType other) {
+		return this.marker == other.marker || this == UNKNOWN || other == UNKNOWN; //TODO: remove once we have defined typing for variables
 	}
 }

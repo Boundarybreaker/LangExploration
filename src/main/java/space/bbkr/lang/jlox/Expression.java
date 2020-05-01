@@ -15,9 +15,13 @@ abstract class Expression {
 		R visitBinaryExpression(BinaryExpression expression);
 		R visitUnaryExpression(UnaryExpression expression);
 		R visitCallExpression(CallExpression expression);
+		R visitGetExpression(GetExpression expression);
+		R visitSetExpression(SetExpression expression);
 		R visitLiteralExpression(LiteralExpression expression);
+		R visitThisExpression(ThisExpression expression);
 		R visitVariableExpression(VariableExpression expression);
 		R visitGroupingExpression(GroupingExpression expression);
+		R visitClassExpression(ClassExpression expression);
 		R visitFunctionExpression(FunctionExpression expression);
 	}
 
@@ -121,16 +125,63 @@ abstract class Expression {
 		}
 	}
 
+	static class GetExpression extends Expression {
+		 final Expression object;
+		 final Token name;
+
+		GetExpression(Expression object, Token name) {
+			this.object = object;
+			this.name = name;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitGetExpression(this);
+		}
+	}
+
+	static class SetExpression extends Expression {
+		 final Expression object;
+		 final Token name;
+		 final Expression value;
+
+		SetExpression(Expression object, Token name, Expression value) {
+			this.object = object;
+			this.name = name;
+			this.value = value;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitSetExpression(this);
+		}
+	}
+
 	static class LiteralExpression extends Expression {
+		 final LoxType type;
 		 final @Nullable Object value;
 
-		LiteralExpression(@Nullable Object value) {
+		LiteralExpression(LoxType type, @Nullable Object value) {
+			this.type = type;
 			this.value = value;
 		}
 
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitLiteralExpression(this);
+		}
+	}
+
+	static class ThisExpression extends Expression {
+		 final Token keyword;
+
+		ThisExpression(Token keyword) {
+			this.keyword = keyword;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitThisExpression(this);
 		}
 	}
 
@@ -157,6 +208,19 @@ abstract class Expression {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitGroupingExpression(this);
+		}
+	}
+
+	static class ClassExpression extends Expression {
+		 final Statement.ClassStatement clazz;
+
+		ClassExpression(Statement.ClassStatement clazz) {
+			this.clazz = clazz;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitClassExpression(this);
 		}
 	}
 

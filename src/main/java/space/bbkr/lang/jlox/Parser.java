@@ -166,7 +166,7 @@ public class Parser {
 		}
 
 		consume(SEMICOLON, "Expect ';' after return value.");
-		return new Statement.ReturnStatement(keyword, value);
+		return new Statement.ReturnStatement(keyword, value, value != null);
 	}
 
 	private Statement forStatement() {
@@ -200,7 +200,7 @@ public class Parser {
 			body = new Statement.BlockStatement(Arrays.asList(body, new Statement.ExpressionStatement(increment)));
 		}
 
-		if (condition == null) condition = new Expression.LiteralExpression(true);
+		if (condition == null) condition = new Expression.LiteralExpression(LoxType.BOOLEAN, true);
 		body = new Statement.WhileStatement(keyword, condition, body);
 
 		if (initializer != null) {
@@ -240,6 +240,7 @@ public class Parser {
 
 	private Statement declaration() {
 		try {
+			if (match(CLASS)) return classDeclaration();
 			if (match(FUN)) return function("function");
 			if (match(VAR)) return varDeclaration();
 
@@ -250,9 +251,27 @@ public class Parser {
 		}
 	}
 
+	private Statement.ClassStatement classDeclaration() {
+		Token name = previous();
+		if (match(IDENTIFIER)) {
+			name = previous();
+		}
+
+		consume(LEFT_BRACE, "Expect '{' before class body.");
+
+		List<Statement.FunctionStatement> methods = new ArrayList<>();
+		while (!check(RIGHT_BRACE) && !isAtEnd()) {
+			methods.add(function("method"));
+		}
+
+		consume(RIGHT_BRACE, "Expect '}' after class body.");
+
+		return new Statement.ClassStatement(name, methods);
+	}
+
 	//TODO: type definitions?
 	private Statement.FunctionStatement function(String kind) { //TODO: type def of parameters, return
-		Token name = null;
+		Token name = previous();
 		if (match(IDENTIFIER)) {
 			name = previous();
 		}
@@ -304,8 +323,11 @@ public class Parser {
 			Expression value = assignment();
 
 			if (expression instanceof Expression.VariableExpression) {
-				Token name = ((Expression.VariableExpression)expression).name;
+				Token name = ((Expression.VariableExpression) expression).name;
 				return new Expression.AssignExpression(name, value);
+			} else if (expression instanceof Expression.GetExpression) {
+				Expression.GetExpression get = (Expression.GetExpression)expression;
+				return new Expression.SetExpression(get.object, get.name, value);
 			}
 
 			throw error(equals, "Invalid assignment target.");
@@ -416,13 +438,16 @@ public class Parser {
 		return call();
 	}
 
-	//TODO: compile-time type checking, compile-time function assessment
 	private Expression call() {
 		Expression expression = primary();
 
 		while (true) {
 			if (match(LEFT_PAREN)) {
 				expression = finishCall(expression);
+			}
+			if (match(DOT)) {
+				Token name = consume(IDENTIFIER, "Expect property name after '.'");
+				expression = new Expression.GetExpression(expression, name);
 			} else {
 				break;
 			}
@@ -448,13 +473,16 @@ public class Parser {
 	}
 
 	private Expression primary() {
-		if (match(FALSE)) return new Expression.LiteralExpression(false);
-		if (match(TRUE)) return new Expression.LiteralExpression(true);
-		if (match(NIL)) return new Expression.LiteralExpression(null);
+		if (match(FALSE)) return new Expression.LiteralExpression(LoxType.BOOLEAN, false);
+		if (match(TRUE)) return new Expression.LiteralExpression(LoxType.BOOLEAN, true);
+		if (match(NIL)) return new Expression.LiteralExpression(LoxType.NONE, null);
+		if (match(CLASS)) return new Expression.ClassExpression(classDeclaration());
 		if (match(FUN)) return new Expression.FunctionExpression(function("function"));
+		if (match(THIS)) return new Expression.ThisExpression(previous());
 
 		if (match(NUMBER, STRING)) {
-			return new Expression.LiteralExpression(previous().literal);
+			Object value = previous().literal;
+			return new Expression.LiteralExpression(value instanceof Double? LoxType.NUMBER : LoxType.STRING, value);
 		}
 
 		if (match(IDENTIFIER)) {

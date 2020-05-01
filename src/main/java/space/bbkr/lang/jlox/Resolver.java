@@ -6,10 +6,12 @@ import java.util.Map;
 import java.util.Stack;
 
 //TODO: type inference and checking
-class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType> {
+class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	private final Interpreter interpreter;
-	private final Stack<Map<String, Boolean>> scopes = new Stack<>();
+	private final Stack<Map<String, LoxType>> scopes = new Stack<>();
+
 	private FunctionType currentFunction = FunctionType.NONE;
+	private ClassType currentClass = ClassType.NONE;
 	private boolean currentWhile = false;
 
 	Resolver(Interpreter interpreter) {
@@ -18,97 +20,170 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType
 
 	@Override
 	public LoxType visitAssignExpression(Expression.AssignExpression expression) {
-		resolve(expression.value);
-		resolveLocal(expression, expression.name);
-		return null;
+		LoxType type = resolve(expression.value);
+		//TODO: assignment type checking
+		return resolveLocal(expression, expression.name, type);
 	}
 
 	@Override
 	public LoxType visitTernaryExpression(Expression.TernaryExpression expression) {
-		resolve(expression.condition);
-		resolve(expression.positive);
-		resolve(expression.negative);
-		return null;
+		LoxType condition = resolve(expression.condition);
+		if (!condition.matches(LoxType.BOOLEAN)) {
+			Lox.error(expression.question, "Condition for ternary must be a boolean, but was " +
+					condition.lexeme + " instead.");
+			return LoxType.UNKNOWN;
+		}
+		LoxType positive = resolve(expression.positive);
+		LoxType negative = resolve(expression.negative);
+		if (!positive.matches(negative)) {
+			Lox.error(expression.question, "Results for ternary must both be the same type, but were " +
+					positive.lexeme + " and " + negative.lexeme + " instead.");
+			return LoxType.UNKNOWN;
+		}
+		return positive;
 	}
 
 	@Override
 	public LoxType visitLogicalExpression(Expression.LogicalExpression expression) {
-		resolve(expression.left);
-		resolve(expression.right);
-		return null;
+		//TODO: typechecking
+		LoxType left = resolve(expression.left);
+		LoxType right = resolve(expression.right);
+		if (!left.matches(LoxType.BOOLEAN) || !right.matches(LoxType.BOOLEAN)) {
+			Lox.error(expression.operator, "Operands for '" + expression.operator.lexeme +
+					"' must be two booleans, but were " + left.lexeme + " and " + right.lexeme + " instead.");
+			return LoxType.UNKNOWN;
+		}
+		return LoxType.BOOLEAN;
 	}
 
 	@Override
 	public LoxType visitBinaryExpression(Expression.BinaryExpression expression) {
-		resolve(expression.left);
-		resolve(expression.right);
-		return null;
+		LoxType left = resolve(expression.left);
+		LoxType right = resolve(expression.right);
+		switch (expression.operator.type) {
+			case PLUS:
+				if (left.matches(LoxType.STRING) || right.matches(LoxType.STRING)) return LoxType.STRING;
+				else if (left.matches(LoxType.NUMBER) && right.matches(LoxType.NUMBER)) return LoxType.NUMBER;
+				else Lox.error(expression.operator,
+							"Operands for '+' must be two numbers or contain one string, but were "
+							+ left.lexeme + " and " + right.lexeme + " instead.");
+				return LoxType.UNKNOWN;
+			case MINUS:
+			case STAR:
+			case SLASH:
+				if (!left.matches(LoxType.NUMBER) || !right.matches(LoxType.NUMBER)) {
+					Lox.error(expression.operator, "Operands for '" + expression.operator.lexeme +
+							"' must be two numbers, but were " + left.lexeme + " and " + right.lexeme + " instead.");
+					return LoxType.UNKNOWN;
+				}
+			default:
+				break;
+		}
+		return LoxType.NUMBER;
 	}
 
 	@Override
 	public LoxType visitUnaryExpression(Expression.UnaryExpression expression) {
-		resolve(expression.right);
-		return null;
+		LoxType right = resolve(expression.right);
+		if (expression.operator.type == TokenType.BANG && !right.matches(LoxType.BOOLEAN)) {
+			Lox.error(expression.operator, "Cannot negate a value that is not a boolean.");
+			return LoxType.UNKNOWN;
+		} else if (expression.operator.type == TokenType.MINUS && !right.matches(LoxType.NUMBER)) {
+			Lox.error(expression.operator, "Cannot get the opposite of a value that is not a boolean.");
+			return LoxType.UNKNOWN;
+		}
+		return right;
 	}
 
-	//TODO: arg validation
+	//TODO: arg validation, type return
 	@Override
 	public LoxType visitCallExpression(Expression.CallExpression expression) {
 		resolve(expression.callee);
 		for (Expression argument : expression.arguments) {
 			resolve(argument);
 		}
-		return null;
+		return LoxType.UNKNOWN;
 	}
 
 	@Override
-	public LoxType visitLiteralExpression(Expression.LiteralExpression expression) { //TODO: return type
-		return null;
+	public LoxType visitGetExpression(Expression.GetExpression expression) {
+		return resolve(expression.object);
+	}
+
+	@Override
+	public LoxType visitSetExpression(Expression.SetExpression expression) {
+		LoxType ret = resolve(expression.value);
+		resolve(expression.object);
+		return ret;
+	}
+
+	@Override
+	public LoxType visitLiteralExpression(Expression.LiteralExpression expression) {
+		return expression.type;
+	}
+
+	@Override
+	public LoxType visitThisExpression(Expression.ThisExpression expression) {
+		if (currentClass == ClassType.NONE) {
+			Lox.error(expression.keyword, "Cannot use 'this' outside of a class.");
+		}
+
+		return resolveLocal(expression, expression.keyword, LoxType.UNKNOWN);
 	}
 
 	@Override
 	public LoxType visitVariableExpression(Expression.VariableExpression expression) {
-		if (!scopes.isEmpty() && scopes.peek().get(expression.name.lexeme) == Boolean.FALSE) { //boxed Boolean for nullability
+		if (!scopes.isEmpty() && scopes.peek().get(expression.name.lexeme) == LoxType.NONE) { //boxed Boolean for nullability
 			Lox.error(expression.name, "Cannot read local variable in its own initializer.");
+			return LoxType.UNKNOWN;
 		}
 
-		resolveLocal(expression, expression.name);
-		return null;
+		return resolveLocal(expression, expression.name, LoxType.UNKNOWN);
+//		return scopes.isEmpty()? LoxType.UNKNOWN : scopes.peek().getOrDefault(expression.name.lexeme, LoxType.UNKNOWN);
 	}
 
 	@Override
 	public LoxType visitGroupingExpression(Expression.GroupingExpression expression) {
-		resolve(expression.expression);
-		return null;
+		return resolve(expression.expression);
 	}
 
 	@Override
-	public LoxType visitFunctionExpression(Expression.FunctionExpression expression) { //TODO: return function type
-		return null;
+	public LoxType visitClassExpression(Expression.ClassExpression expression) {
+		resolve(expression.clazz);
+		return LoxType.CLASS(expression.clazz.name);
 	}
 
 	@Override
-	public LoxType visitIfStatement(Statement.IfStatement statement) {
+	public LoxType visitFunctionExpression(Expression.FunctionExpression expression) {
+		resolve(expression.function);
+		return LoxType.FUNCTION;
+	}
+
+	@Override
+	public Void visitIfStatement(Statement.IfStatement statement) {
 		resolve(statement.condition);
 		resolve(statement.thenBranch);
 		if (statement.elseBranch != null) resolve(statement.elseBranch);
 		return null;
 	}
 
-	//TODO: this is gonna make me have to have all statmenets return a LoxType, isn't it...
+	//TODO: make sure return types are all the same
 	@Override
-	public LoxType visitReturnStatement(Statement.ReturnStatement statement) {
+	public Void visitReturnStatement(Statement.ReturnStatement statement) {
 		if (currentFunction == FunctionType.NONE) {
 			Lox.error(statement.keyword, "Cannot return from outside a function or method.");
 		}
 		if (statement.value != null) {
+			if (currentFunction == FunctionType.INITIALIZER) {
+				Lox.error(statement.keyword, "Cannot return a value from an initializer.");
+			}
 			resolve(statement.value);
 		}
 		return null;
 	}
 
 	@Override
-	public LoxType visitWhileStatement(Statement.WhileStatement statement) {
+	public Void visitWhileStatement(Statement.WhileStatement statement) {
 		boolean enclosingWhile = currentWhile;
 		currentWhile = true;
 		resolve(statement.condition);
@@ -118,13 +193,13 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType
 	}
 
 	@Override
-	public LoxType visitBreakStatement(Statement.BreakStatement statement) {
+	public Void visitBreakStatement(Statement.BreakStatement statement) {
 		if (!currentWhile) Lox.error(statement.keyword, "Cannot return from outside a while loop.");
 		return null;
 	}
 
 	@Override
-	public LoxType visitBlockStatement(Statement.BlockStatement statement) {
+	public Void visitBlockStatement(Statement.BlockStatement statement) {
 		beginScope();
 		resolve(statement.statements);
 		endScope();
@@ -132,26 +207,54 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType
 	}
 
 	@Override
-	public LoxType visitFunctionStatement(Statement.FunctionStatement statement) {
-		declare(statement.name);
-		define(statement.name);
+	public Void visitClassStatement(Statement.ClassStatement statement) {
+		ClassType enclosingClass = currentClass;
+		currentClass = ClassType.CLASS;
+		if (statement.name.type == TokenType.IDENTIFIER) {
+			declare(statement.name);
+			define(statement.name, LoxType.CLASS(statement.name));
+		}
+
+		beginScope();
+		scopes.peek().put("this", LoxType.CLASS(statement.name));
+
+		for (Statement.FunctionStatement method : statement.methods) {
+			FunctionType declaration = FunctionType.METHOD;
+			if (method.name.lexeme.equals("init")) {
+				declaration = FunctionType.INITIALIZER;
+			}
+			resolveFunction(method, declaration);
+		}
+
+		endScope();
+		currentClass = enclosingClass;
+		return null;
+	}
+
+	@Override
+	public Void visitFunctionStatement(Statement.FunctionStatement statement) {
+		if (statement.name.type == TokenType.IDENTIFIER) {
+			declare(statement.name);
+			define(statement.name, LoxType.FUNCTION);
+		}
 
 		resolveFunction(statement, FunctionType.FUNCTION);
 		return null;
 	}
 
 	@Override
-	public LoxType visitVarStatement(Statement.VarStatement statement) {
+	public Void visitVarStatement(Statement.VarStatement statement) {
 		declare(statement.name);
+		LoxType type = LoxType.NONE;
 		if (statement.initializer != null) {
-			resolve(statement.initializer);
+			type = resolve(statement.initializer);
 		}
-		define(statement.name);
+		define(statement.name, type);
 		return null;
 	}
 
 	@Override
-	public LoxType visitExpressionStatement(Statement.ExpressionStatement statement) {
+	public Void visitExpressionStatement(Statement.ExpressionStatement statement) {
 		resolve(statement.expression);
 		return null;
 	}
@@ -162,8 +265,8 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType
 		}
 	}
 
-	private LoxType resolve(Statement statement) {
-		return statement.accept(this);
+	private void resolve(Statement statement) {
+		statement.accept(this);
 	}
 
 	private LoxType resolve(Expression expression) {
@@ -173,27 +276,41 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType
 	private void declare(Token name) {
 		if (scopes.isEmpty()) return;
 
-		Map<String, Boolean> scope = scopes.peek();
+		Map<String, LoxType> scope = scopes.peek();
 		if (scope.containsKey(name.lexeme)) {
 			Lox.error(name, "Variable with this name already declared in this scope.");
 		}
-		scope.put(name.lexeme, false);
+		scope.put(name.lexeme, LoxType.NONE);
 	}
 
-	private void define(Token name) {
+	private void define(Token name, LoxType type) {
 		if (scopes.isEmpty()) return;
-		scopes.peek().put(name.lexeme, true);
+		scopes.peek().put(name.lexeme, type);
 	}
 
-	private void resolveLocal(Expression expression, Token name) {
+	private LoxType resolveLocal(Expression expression, Token name, LoxType type) {
 		for (int i = scopes.size() - 1; i >= 0; i--) {
 			if (scopes.get(i).containsKey(name.lexeme)) {
+				LoxType scopeType = scopes.get(i).get(name.lexeme);
 				interpreter.resolve(expression, scopes.size() - 1 - i);
-				return;
+				if (type != LoxType.UNKNOWN) {
+					if (scopeType == LoxType.UNKNOWN) {
+						scopes.get(i).put(name.lexeme, type);
+						return type;
+					} else {
+						if (!type.matches(scopeType)) {
+							Lox.error(name, "Variable '" + name.lexeme + "' has an established type of " +
+									scopeType.lexeme + " but a value of type " + type.lexeme +
+									" was set instead.");
+						}
+					}
+				}
+				return scopeType;
 			}
 		}
 
 		//Not found. Assume it's global.
+		return LoxType.UNKNOWN;
 	}
 
 	//TODO: more advanced for type checking
@@ -204,7 +321,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType
 		beginScope();
 		for (Token param : function.parms) {
 			declare(param);
-			define(param);
+			define(param, LoxType.UNKNOWN); //TODO: fix
 		}
 		resolve(function.body);
 		endScope();
@@ -221,6 +338,13 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<LoxType
 
 	private enum FunctionType {
 		NONE,
-		FUNCTION
+		FUNCTION,
+		INITIALIZER,
+		METHOD
+	}
+
+	private enum ClassType {
+		NONE,
+		CLASS
 	}
 }

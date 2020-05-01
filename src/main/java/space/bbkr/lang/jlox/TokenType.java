@@ -13,7 +13,7 @@ enum TokenType {
 
 	//types
 	//TODO: arrays?
-	NUM, BOOL, STR,
+	BOOLEAN, INSTANCE,
 
 	//keywords
 	AND, BREAK, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, RETURN, SUPER, THIS, TRUE, VAR, WHILE,

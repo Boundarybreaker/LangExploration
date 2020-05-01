@@ -206,8 +206,37 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	}
 
 	@Override
+	public Object visitGetExpression(Expression.GetExpression expression) {
+		Object object = evaluate(expression.object);
+		if (object instanceof LoxInstance) {
+			return ((LoxInstance)object).get(expression.name);
+		}
+
+		throw new RuntimeError("TypeError", expression.name, "Only instances have properties.");
+	}
+
+	@Override
+	public Object visitSetExpression(Expression.SetExpression expression) {
+		Object object = evaluate(expression.object);
+
+		if (!(object instanceof LoxInstance)) {
+			throw new RuntimeError("TypeError", expression.name, "Only instances have fields.");
+		}
+
+		Object value = evaluate(expression.value);
+
+		((LoxInstance)object).set(expression.name, value);
+		return value;
+	}
+
+	@Override
 	public Object visitLiteralExpression(Expression.LiteralExpression expression) {
 		return expression.value;
+	}
+
+	@Override
+	public Object visitThisExpression(Expression.ThisExpression expression) {
+		return lookupVariable(expression.keyword, expression);
 	}
 
 	@Override
@@ -221,8 +250,22 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	}
 
 	@Override
+	public Object visitClassExpression(Expression.ClassExpression expression) {
+		Map<String, LoxFunction> methods = new HashMap<>();
+		for (Statement.FunctionStatement method : expression.clazz.methods) {
+			if (method.name.type != TokenType.IDENTIFIER) {
+				Lox.error(expression.clazz.name, "Methods must have defined names");
+				continue;
+			}
+			LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
+			methods.put(method.name.lexeme, function);
+		}
+		return new LoxClass(expression.clazz.name, methods);
+	}
+
+	@Override
 	public Object visitFunctionExpression(Expression.FunctionExpression expression) {
-		return new LoxFunction(expression.function, environment);
+		return new LoxFunction(expression.function, environment, false);
 	}
 
 	@Override
@@ -265,8 +308,28 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	}
 
 	@Override
+	public Void visitClassStatement(Statement.ClassStatement statement) {
+		if (statement.name.type == TokenType.IDENTIFIER) environment.define(statement.name.lexeme, null);
+
+		Map<String, LoxFunction> methods = new HashMap<>();
+		for (Statement.FunctionStatement method : statement.methods) {
+			if (method.name.type != TokenType.IDENTIFIER) {
+				Lox.error(statement.name, "Methods must have defined names");
+				continue;
+			}
+			LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
+			methods.put(method.name.lexeme, function);
+		}
+
+		LoxClass clazz = new LoxClass(statement.name, methods);
+		if (statement.name.type == TokenType.IDENTIFIER) environment.assign(statement.name, clazz);
+
+		return null;
+	}
+
+	@Override
 	public Void visitFunctionStatement(Statement.FunctionStatement statement) {
-		LoxFunction function = new LoxFunction(statement, environment);
+		LoxFunction function = new LoxFunction(statement, environment, false);
 		if (statement.name != null) environment.define(statement.name.lexeme, function);
 		return null;
 	}
