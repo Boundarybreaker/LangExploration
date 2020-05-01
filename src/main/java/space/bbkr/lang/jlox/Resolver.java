@@ -8,6 +8,7 @@ import java.util.Stack;
 //TODO: type inference and checking
 class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	private final Interpreter interpreter;
+	private final Map<String, LoxType> globals = new HashMap<>();
 	private final Stack<Map<String, LoxType>> scopes = new Stack<>();
 
 	private FunctionType currentFunction = FunctionType.NONE;
@@ -21,7 +22,6 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	@Override
 	public LoxType visitAssignExpression(Expression.AssignExpression expression) {
 		LoxType type = resolve(expression.value);
-		//TODO: assignment type checking
 		return resolveLocal(expression, expression.name, type);
 	}
 
@@ -45,7 +45,6 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 
 	@Override
 	public LoxType visitLogicalExpression(Expression.LogicalExpression expression) {
-		//TODO: typechecking
 		LoxType left = resolve(expression.left);
 		LoxType right = resolve(expression.right);
 		if (!left.matches(LoxType.BOOLEAN) || !right.matches(LoxType.BOOLEAN)) {
@@ -76,10 +75,22 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 							"' must be two numbers, but were " + left.lexeme + " and " + right.lexeme + " instead.");
 					return LoxType.UNKNOWN;
 				}
+				return LoxType.NUMBER;
+			case GREATER:
+			case GREATER_EQUAL:
+			case LESS:
+			case LESS_EQUAL:
+				if (!left.matches(LoxType.NUMBER) || !right.matches(LoxType.NUMBER)) {
+					Lox.error(expression.operator, "Operands for '" + expression.operator.lexeme +
+							"' must be two numbers, but were " + left.lexeme + " and " + right.lexeme + " instead.");
+					return LoxType.UNKNOWN;
+				}
+				return LoxType.BOOLEAN;
 			default:
 				break;
 		}
-		return LoxType.NUMBER;
+		//unreachable
+		return LoxType.UNKNOWN;
 	}
 
 	@Override
@@ -139,7 +150,6 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		}
 
 		return resolveLocal(expression, expression.name, LoxType.UNKNOWN);
-//		return scopes.isEmpty()? LoxType.UNKNOWN : scopes.peek().getOrDefault(expression.name.lexeme, LoxType.UNKNOWN);
 	}
 
 	@Override
@@ -161,7 +171,11 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 
 	@Override
 	public Void visitIfStatement(Statement.IfStatement statement) {
-		resolve(statement.condition);
+		LoxType condition = resolve(statement.condition);
+		if (!condition.matches(LoxType.BOOLEAN)) {
+			Lox.error(statement.keyword, "Condition for if statement must be a boolean, but was " +
+					condition.lexeme + " instead.");
+		}
 		resolve(statement.thenBranch);
 		if (statement.elseBranch != null) resolve(statement.elseBranch);
 		return null;
@@ -274,7 +288,10 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	}
 
 	private void declare(Token name) {
-		if (scopes.isEmpty()) return;
+		if (scopes.isEmpty()) {
+			globals.put(name.lexeme, LoxType.NONE);
+			return;
+		}
 
 		Map<String, LoxType> scope = scopes.peek();
 		if (scope.containsKey(name.lexeme)) {
@@ -284,7 +301,10 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	}
 
 	private void define(Token name, LoxType type) {
-		if (scopes.isEmpty()) return;
+		if (scopes.isEmpty()) {
+			globals.put(name.lexeme, type);
+			return;
+		}
 		scopes.peek().put(name.lexeme, type);
 	}
 
@@ -294,14 +314,14 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 				LoxType scopeType = scopes.get(i).get(name.lexeme);
 				interpreter.resolve(expression, scopes.size() - 1 - i);
 				if (type != LoxType.UNKNOWN) {
-					if (scopeType == LoxType.UNKNOWN) {
+					if (scopeType == LoxType.NONE) {
 						scopes.get(i).put(name.lexeme, type);
 						return type;
 					} else {
 						if (!type.matches(scopeType)) {
 							Lox.error(name, "Variable '" + name.lexeme + "' has an established type of " +
 									scopeType.lexeme + " but a value of type " + type.lexeme +
-									" was set instead.");
+									" was assigned instead.");
 						}
 					}
 				}
@@ -310,7 +330,23 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		}
 
 		//Not found. Assume it's global.
-		return LoxType.UNKNOWN;
+		if (type != LoxType.UNKNOWN) {
+			if (!globals.containsKey(name.lexeme)) {
+				globals.put(name.lexeme, type);
+			} else {
+				LoxType globalType = globals.get(name.lexeme);
+				if (globalType == LoxType.NONE) {
+					globals.put(name.lexeme, type);
+					return type;
+				} else {
+					if (!type.matches(globalType)) {
+						Lox.error(name, "Variable '" + name.lexeme + "'has an established type of " +
+								globalType.lexeme + " but a value of type " + type.lexeme + " was assigned instead.");
+					}
+				}
+			}
+		}
+		return type;
 	}
 
 	//TODO: more advanced for type checking
@@ -321,7 +357,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		beginScope();
 		for (Token param : function.parms) {
 			declare(param);
-			define(param, LoxType.UNKNOWN); //TODO: fix
+			define(param, LoxType.UNKNOWN); //TODO: typing
 		}
 		resolve(function.body);
 		endScope();
