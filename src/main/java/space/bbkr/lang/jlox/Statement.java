@@ -101,10 +101,12 @@ abstract class Statement {
 
 	static class ClassStatement extends Statement {
 		 final Token name;
+		 final @Nullable Expression.VariableExpression superclass;
 		 final List<Statement.FunctionStatement> methods;
 
-		ClassStatement(Token name, List<Statement.FunctionStatement> methods) {
+		ClassStatement(Token name, @Nullable Expression.VariableExpression superclass, List<Statement.FunctionStatement> methods) {
 			this.name = name;
+			this.superclass = superclass;
 			this.methods = methods;
 		}
 

@@ -236,6 +236,23 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	}
 
 	@Override
+	public Object visitSuperExpression(Expression.SuperExpression expression) {
+		int distance = locals.get(expression);
+		LoxClass superclass = (LoxClass)environment.getAt(distance, "super");
+
+		// "this" is always one level nearer than "super"'s environment.
+		LoxInstance object = (LoxInstance)environment.getAt(distance - 1, "this");
+
+		LoxFunction method = superclass.findMethod(expression.method.lexeme);
+
+		if (method == null) {
+			throw new RuntimeError("DefError", expression.method, "Undefined property '" + expression.method.lexeme + "'.");
+		}
+
+		return method.bind(object);
+	}
+
+	@Override
 	public Object visitThisExpression(Expression.ThisExpression expression) {
 		return lookupVariable(expression.keyword, expression);
 	}
@@ -252,6 +269,14 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 
 	@Override
 	public Object visitClassExpression(Expression.ClassExpression expression) {
+		Object superclass = null;
+		if (expression.clazz.superclass != null) {
+			superclass = evaluate(expression.clazz.superclass);
+			if (!(superclass instanceof LoxClass)) {
+				throw new RuntimeError("TypeError", expression.clazz.superclass.name,
+						"Superclass must be a class.");
+			}
+		}
 		Map<String, LoxFunction> methods = new HashMap<>();
 		for (Statement.FunctionStatement method : expression.clazz.methods) {
 			if (method.name.type != TokenType.IDENTIFIER) {
@@ -261,7 +286,7 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 			LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
 			methods.put(method.name.lexeme, function);
 		}
-		return new LoxClass(expression.clazz.name, methods);
+		return new LoxClass(expression.clazz.name, (LoxClass)superclass, methods);
 	}
 
 	@Override
@@ -310,7 +335,20 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 
 	@Override
 	public Void visitClassStatement(Statement.ClassStatement statement) {
+		Object superclass = null;
+		if (statement.superclass != null) {
+			superclass = evaluate(statement.superclass);
+			if (!(superclass instanceof LoxClass)) {
+				throw new RuntimeError("TypeError", statement.superclass.name,
+						"Superclass must be a class.");
+			}
+		}
 		if (statement.name.type == TokenType.IDENTIFIER) environment.define(statement.name.lexeme, null);
+
+		if (statement.superclass != null) {
+			environment = new Environment(environment);
+			environment.define("super", superclass);
+		}
 
 		Map<String, LoxFunction> methods = new HashMap<>();
 		for (Statement.FunctionStatement method : statement.methods) {
@@ -322,7 +360,12 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 			methods.put(method.name.lexeme, function);
 		}
 
-		LoxClass clazz = new LoxClass(statement.name, methods);
+		LoxClass clazz = new LoxClass(statement.name, (LoxClass)superclass, methods);
+
+		if (superclass != null) {
+			environment = environment.enclosing;
+		}
+
 		if (statement.name.type == TokenType.IDENTIFIER) environment.assign(statement.name, clazz);
 
 		return null;

@@ -59,6 +59,11 @@ public class AstPrinter implements Expression.Visitor<String> {
 	}
 
 	@Override
+	public String visitSuperExpression(Expression.SuperExpression expression) {
+		return parenthesize("super");
+	}
+
+	@Override
 	public String visitThisExpression(Expression.ThisExpression expression) {
 		return "this";
 	}

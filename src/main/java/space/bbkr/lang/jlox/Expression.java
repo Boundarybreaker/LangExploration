@@ -18,6 +18,7 @@ abstract class Expression {
 		R visitGetExpression(GetExpression expression);
 		R visitSetExpression(SetExpression expression);
 		R visitLiteralExpression(LiteralExpression expression);
+		R visitSuperExpression(SuperExpression expression);
 		R visitThisExpression(ThisExpression expression);
 		R visitVariableExpression(VariableExpression expression);
 		R visitGroupingExpression(GroupingExpression expression);
@@ -169,6 +170,21 @@ abstract class Expression {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitLiteralExpression(this);
+		}
+	}
+
+	static class SuperExpression extends Expression {
+		 final Token keyword;
+		 final Token method;
+
+		SuperExpression(Token keyword, Token method) {
+			this.keyword = keyword;
+			this.method = method;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitSuperExpression(this);
 		}
 	}
 

@@ -257,6 +257,13 @@ public class Parser {
 			name = previous();
 		}
 
+		Expression.VariableExpression superclass = null;
+
+		if (match(COLON)) {
+			consume(IDENTIFIER, "Expect superclass name.");
+			superclass = new Expression.VariableExpression(previous());
+		}
+
 		consume(LEFT_BRACE, "Expect '{' before class body.");
 
 		List<Statement.FunctionStatement> methods = new ArrayList<>();
@@ -266,7 +273,7 @@ public class Parser {
 
 		consume(RIGHT_BRACE, "Expect '}' after class body.");
 
-		return new Statement.ClassStatement(name, methods);
+		return new Statement.ClassStatement(name, superclass, methods);
 	}
 
 	//TODO: type definitions?
@@ -444,9 +451,8 @@ public class Parser {
 		while (true) {
 			if (match(LEFT_PAREN)) {
 				expression = finishCall(expression);
-			}
-			if (match(DOT)) {
-				Token name = consume(IDENTIFIER, "Expect property name after '.'");
+			} else if (match(DOT)) {
+				Token name = consume(IDENTIFIER, "Expect property name after '.'.");
 				expression = new Expression.GetExpression(expression, name);
 			} else {
 				break;
@@ -479,6 +485,12 @@ public class Parser {
 		if (match(CLASS)) return new Expression.ClassExpression(classDeclaration());
 		if (match(FUN)) return new Expression.FunctionExpression(function("function"));
 		if (match(THIS)) return new Expression.ThisExpression(previous());
+		if (match(SUPER)) {
+			Token keyword = previous();
+			consume(DOT, "Expect '.' after 'super'.");
+			Token method = consume(IDENTIFIER, "Expect superclass method name.");
+			return new Expression.SuperExpression(keyword, method);
+		}
 
 		if (match(NUMBER, STRING)) {
 			Object value = previous().literal;

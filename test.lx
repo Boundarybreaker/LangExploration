@@ -1,42 +1,15 @@
-fun fibonacci(n) {
-    if (n <= 1) return n;
-    return fibonacci(n - 2) + fibonacci(n - 1);
-}
-
-for (var i = 0; i < 20; i = i + 1) {
-    var fib = fibonacci(i);
-    print(fib);
-    if (fib == 610) {
-        print("610 is a fibonacci number!");
-        break;
+class Doughnut {
+    cook() {
+        print("Fry until golden brown.");
     }
 }
 
-
-fun thrice(fn) {
-    for (var i = 1; i <= 3; i = i + 1) {
-        fn(i);
+class BostonCream : Doughnut {
+    cook() {
+        super.cook();
+        print("Pipe full of custard and coat with cocolate.");
     }
 }
 
-thrice(fun (a) {
-    print("lambda result " + a);
-});
-
-fun serve(clazz) {
-    return clazz().serveOn();
-}
-
-class DevonshireCream {
-    serveOn() {
-        return "scones";
-    }
-}
-
-print(serve(DevonshireCream));
-
-print(serve(class {
-    serveOn() {
-        return "biscuits";
-    }
-}));
+var cream = BostonCream();
+cream.cook();

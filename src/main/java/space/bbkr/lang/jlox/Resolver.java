@@ -1,5 +1,6 @@
 package space.bbkr.lang.jlox;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	private final Interpreter interpreter;
 	private final Map<String, LoxType> globals = new HashMap<>();
 	private final Stack<Map<String, LoxType>> scopes = new Stack<>();
+	private final Map<String, Map<String, LoxType.FunctionLoxType>> classes = new HashMap<>();
 
 	private FunctionType currentFunction = FunctionType.NONE;
 	private ClassType currentClass = ClassType.NONE;
@@ -18,8 +20,8 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	Resolver(Interpreter interpreter) {
 		this.interpreter = interpreter;
 		//TODO: better stdlib
-		globals.put("print", LoxType.FUNCTION);
-		globals.put("clock", LoxType.FUNCTION);
+		globals.put("print", LoxType.FUNCTION(LoxType.NONE));
+		globals.put("clock", LoxType.FUNCTION(LoxType.NUMBER));
 	}
 
 	@Override
@@ -111,12 +113,10 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		return right;
 	}
 
-	//TODO: arg validation, better type return
+	//TODO: arg validation, type return for functions/methods
 	@Override
 	public LoxType visitCallExpression(Expression.CallExpression expression) {
 		LoxType type = resolve(expression.callee);
-		System.out.println("Callee on line " + expression.paren.line + " is of type " + type.lexeme +
-				" and of class " + expression.callee.getClass().getName());
 		if (!type.isCallable()) {
 			Lox.error(expression.paren,
 					"Only classes, functions, and methods can be called, but attempted to call " +
@@ -125,15 +125,30 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		for (Expression argument : expression.arguments) {
 			resolve(argument);
 		}
-		if (type instanceof ClassLoxType) {
-			return LoxType.INSTANCE(((ClassLoxType) type).name); //TODO: better typing for classes and instances
+		if (type instanceof LoxType.ClassLoxType) {
+			LoxType.ClassLoxType classType = (LoxType.ClassLoxType)type;
+			return LoxType.INSTANCE(classType.name, classType);
 		}
 		return LoxType.UNKNOWN;
 	}
 
 	@Override
 	public LoxType visitGetExpression(Expression.GetExpression expression) {
-		return resolve(expression.object);
+		LoxType type = resolve(expression.object);
+		if (!(type instanceof LoxType.InstanceLoxType)) {
+			Lox.error(expression.name,
+					"Only instances can have properties, but attempted to get a property on " + type.lexeme +
+					" instead.");
+			return LoxType.UNKNOWN;
+		}
+		String name = ((LoxType.InstanceLoxType)type).getRawTypeName();
+		if (classes.containsKey(name)) {
+			Map<String, LoxType.FunctionLoxType> methods = classes.get(name);
+			if (methods.containsKey(expression.name.lexeme)) {
+				return methods.get(expression.name.lexeme);
+			}
+		}
+		return type; //TODO: does this need to be fixed too?
 	}
 
 	@Override
@@ -149,9 +164,40 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	}
 
 	@Override
+	public LoxType visitSuperExpression(Expression.SuperExpression expression) {
+		if (currentClass == ClassType.NONE) {
+			Lox.error(expression.keyword, "Cannot use 'super' outside of a class.");
+			return LoxType.UNKNOWN;
+		}
+		if (currentClass == ClassType.CLASS) {
+			Lox.error(expression.keyword, "Cannot use 'super' in a class with no superclass.");
+		}
+		LoxType type = resolveLocal(expression, expression.keyword, LoxType.UNKNOWN);
+		if (!(type instanceof LoxType.InstanceLoxType)) {
+			Lox.error(expression.keyword, "'super' not defined as an instance on this scope.");
+			return LoxType.UNKNOWN;
+		}
+		String name = ((LoxType.InstanceLoxType)type).getRawTypeName();
+		if (classes.containsKey(name)) {
+			Map<String, LoxType.FunctionLoxType> methods = classes.get(name);
+			if (methods.containsKey(expression.method.lexeme)) {
+				return methods.get(expression.method.lexeme);
+			} else {
+				Lox.error(expression.keyword, "Couldn't find method " + expression.method.lexeme +
+						" to call super to.");
+				return LoxType.UNKNOWN;
+			}
+		} else {
+			Lox.error(expression.keyword, "Couldn't find class for super!");
+			return LoxType.UNKNOWN;
+		}
+	}
+
+	@Override
 	public LoxType visitThisExpression(Expression.ThisExpression expression) {
 		if (currentClass == ClassType.NONE) {
 			Lox.error(expression.keyword, "Cannot use 'this' outside of a class.");
+			return LoxType.UNKNOWN;
 		}
 
 		return resolveLocal(expression, expression.keyword, LoxType.UNKNOWN);
@@ -175,13 +221,25 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	@Override
 	public LoxType visitClassExpression(Expression.ClassExpression expression) {
 		resolve(expression.clazz);
-		return LoxType.CLASS(expression.clazz.name);
+		LoxType supertype = null;
+		if (expression.clazz.superclass != null) {
+			if (expression.clazz.name.lexeme.equals(expression.clazz.superclass.name.lexeme)) {
+				Lox.error(expression.clazz.superclass.name, "A class cannot extend itself.");
+			}
+			supertype = resolve(expression.clazz.superclass);
+			if (!(supertype instanceof LoxType.ClassLoxType)) {
+				Lox.error(expression.clazz.superclass.name, "A class cannot extend a non-class.");
+				return null;
+			}
+		}
+		return LoxType.CLASS(expression.clazz.name, (LoxType.ClassLoxType)supertype);
 	}
 
+	//TODO: explicit return types on functions
 	@Override
 	public LoxType visitFunctionExpression(Expression.FunctionExpression expression) {
 		resolve(expression.function);
-		return LoxType.FUNCTION;
+		return LoxType.FUNCTION(LoxType.UNKNOWN);
 	}
 
 	@Override
@@ -239,32 +297,64 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	public Void visitClassStatement(Statement.ClassStatement statement) {
 		ClassType enclosingClass = currentClass;
 		currentClass = ClassType.CLASS;
+		LoxType supertype = null;
+
+		if (statement.superclass != null) {
+			currentClass = ClassType.SUBCLASS;
+			if (statement.name.lexeme.equals(statement.superclass.name.lexeme)) {
+				Lox.error(statement.superclass.name, "A class cannot extend itself.");
+			}
+			supertype = resolve(statement.superclass);
+			if (!(supertype instanceof LoxType.ClassLoxType)) {
+				Lox.error(statement.superclass.name, "A class cannot extend a non-class.");
+				return null;
+			}
+		}
+
 		if (statement.name.type == TokenType.IDENTIFIER) {
 			declare(statement.name);
-			define(statement.name, LoxType.CLASS(statement.name));
+			define(statement.name, LoxType.CLASS(statement.name, (LoxType.ClassLoxType)supertype));
+		}
+
+		if (statement.superclass != null) {
+			beginScope();
+			scopes.peek().put("super", LoxType.INSTANCE(statement.superclass.name, (LoxType.ClassLoxType)supertype));
 		}
 
 		beginScope();
-		scopes.peek().put("this", LoxType.CLASS(statement.name));
+		scopes.peek().put("this", LoxType.CLASS(statement.name, (LoxType.ClassLoxType)supertype));
+
+		Map<String, LoxType.FunctionLoxType> methods = new HashMap<>();
+
+		if (statement.superclass != null) {
+			methods.putAll(classes.get(statement.superclass.name.lexeme));
+		}
 
 		for (Statement.FunctionStatement method : statement.methods) {
 			FunctionType declaration = FunctionType.METHOD;
 			if (method.name.lexeme.equals("init")) {
 				declaration = FunctionType.INITIALIZER;
 			}
-			resolveFunction(method, declaration);
+			methods.put(method.name.lexeme, resolveFunction(method, declaration));
+		}
+
+		if (statement.name.type == TokenType.IDENTIFIER) {
+			classes.put(statement.name.lexeme, methods);
 		}
 
 		endScope();
+		if (statement.superclass != null) endScope();
+
 		currentClass = enclosingClass;
 		return null;
 	}
 
+	//TODO: explicit return types on functions
 	@Override
 	public Void visitFunctionStatement(Statement.FunctionStatement statement) {
 		if (statement.name.type == TokenType.IDENTIFIER) {
 			declare(statement.name);
-			define(statement.name, LoxType.FUNCTION);
+			define(statement.name, LoxType.FUNCTION(LoxType.UNKNOWN));
 		}
 
 		resolveFunction(statement, FunctionType.FUNCTION);
@@ -369,7 +459,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	}
 
 	//TODO: more advanced for type checking
-	private void resolveFunction(Statement.FunctionStatement function, FunctionType type) {
+	private LoxType.FunctionLoxType resolveFunction(Statement.FunctionStatement function, FunctionType type) {
 		FunctionType enclosingFunction = currentFunction;
 		currentFunction = type;
 
@@ -381,6 +471,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		resolve(function.body);
 		endScope();
 		currentFunction = enclosingFunction;
+		return LoxType.FUNCTION(LoxType.UNKNOWN);
 	}
 
 	private void beginScope() {
@@ -400,6 +491,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 
 	private enum ClassType {
 		NONE,
-		CLASS
+		CLASS,
+		SUBCLASS
 	}
 }

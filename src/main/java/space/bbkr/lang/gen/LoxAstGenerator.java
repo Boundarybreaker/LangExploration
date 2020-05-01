@@ -23,6 +23,7 @@ public class LoxAstGenerator {
 				"Get: Expression object, Token name",
 				"Set: Expression object, Token name, Expression value",
 				"Literal: LoxType type, @Nullable Object value",
+				"Super: Token keyword, Token method",
 				"This: Token keyword",
 				"Variable: Token name",
 				"Grouping: Expression expression",
@@ -36,7 +37,7 @@ public class LoxAstGenerator {
 				"While: Token keyword, Expression condition, Statement body",
 				"Break: Token keyword",
 				"Block: List<Statement> statements",
-				"Class: Token name, List<Statement.FunctionStatement> methods",
+				"Class: Token name, @Nullable Expression.VariableExpression superclass, List<Statement.FunctionStatement> methods",
 				"Function: Token name, List<Token> parms, List<Statement> body",
 				"Var: Token name, @Nullable Expression initializer",
 				"Expression: Expression expression"

@@ -29,6 +29,6 @@ class LoxInstance {
 
 	@Override
 	public String toString() {
-		return "< instance of " + clazz.toString() + ">";
+		return "<instance of " + clazz.toString() + ">";
 	}
 }
