@@ -17,6 +17,9 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 
 	Resolver(Interpreter interpreter) {
 		this.interpreter = interpreter;
+		//TODO: better stdlib
+		globals.put("print", LoxType.FUNCTION);
+		globals.put("clock", LoxType.FUNCTION);
 	}
 
 	@Override
@@ -80,6 +83,8 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 			case GREATER_EQUAL:
 			case LESS:
 			case LESS_EQUAL:
+			case EQUAL_EQUAL:
+			case BANG_EQUAL:
 				if (!left.matches(LoxType.NUMBER) || !right.matches(LoxType.NUMBER)) {
 					Lox.error(expression.operator, "Operands for '" + expression.operator.lexeme +
 							"' must be two numbers, but were " + left.lexeme + " and " + right.lexeme + " instead.");
@@ -106,12 +111,22 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		return right;
 	}
 
-	//TODO: arg validation, type return
+	//TODO: arg validation, better type return
 	@Override
 	public LoxType visitCallExpression(Expression.CallExpression expression) {
-		resolve(expression.callee);
+		LoxType type = resolve(expression.callee);
+		System.out.println("Callee on line " + expression.paren.line + " is of type " + type.lexeme +
+				" and of class " + expression.callee.getClass().getName());
+		if (!type.isCallable()) {
+			Lox.error(expression.paren,
+					"Only classes, functions, and methods can be called, but attempted to call " +
+							type.lexeme + " instead.");
+		}
 		for (Expression argument : expression.arguments) {
 			resolve(argument);
+		}
+		if (type instanceof ClassLoxType) {
+			return LoxType.INSTANCE(((ClassLoxType) type).name); //TODO: better typing for classes and instances
 		}
 		return LoxType.UNKNOWN;
 	}
@@ -144,7 +159,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 
 	@Override
 	public LoxType visitVariableExpression(Expression.VariableExpression expression) {
-		if (!scopes.isEmpty() && scopes.peek().get(expression.name.lexeme) == LoxType.NONE) { //boxed Boolean for nullability
+		if (!scopes.isEmpty() && scopes.peek().get(expression.name.lexeme) == LoxType.NONE) {
 			Lox.error(expression.name, "Cannot read local variable in its own initializer.");
 			return LoxType.UNKNOWN;
 		}
@@ -344,6 +359,10 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 								globalType.lexeme + " but a value of type " + type.lexeme + " was assigned instead.");
 					}
 				}
+			}
+		} else {
+			if (globals.containsKey(name.lexeme)) {
+				return globals.get(name.lexeme);
 			}
 		}
 		return type;

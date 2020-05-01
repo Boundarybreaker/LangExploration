@@ -11,6 +11,7 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	private final Map<Expression, Integer> locals = new HashMap<>();
 
 	Interpreter() {
+		//TODO: better stdlib
 		globals.define("print", new LoxCallable() {
 			@Override
 			public int arity() {

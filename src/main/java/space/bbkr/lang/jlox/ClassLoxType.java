@@ -15,4 +15,8 @@ public class ClassLoxType extends LoxType {
 		return lexeme.equals(other.lexeme);
 	}
 
+	@Override
+	boolean isCallable() {
+		return true;
+	}
 }

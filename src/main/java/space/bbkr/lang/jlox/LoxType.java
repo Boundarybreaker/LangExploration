@@ -3,6 +3,7 @@ package space.bbkr.lang.jlox;
 //TODO: improve once we have class heirarchy
 class LoxType {
 	static final LoxType UNKNOWN = new LoxType(TokenType.NIL, "unknown");
+	static final LoxType ANY = new LoxType(TokenType.STAR, "any");
 	static final LoxType NONE = new LoxType(TokenType.NIL, "none");
 	static final LoxType NUMBER = new LoxType(TokenType.NUMBER, "number");
 	static final LoxType BOOLEAN = new LoxType(TokenType.BOOLEAN, "boolean");
@@ -24,6 +25,12 @@ class LoxType {
 	}
 
 	boolean matches(LoxType other) {
-		return this.marker == other.marker || this == UNKNOWN || other == UNKNOWN; //TODO: remove once we have defined typing for variables
+		return this.marker == other.marker
+				|| this == ANY || other == ANY //wildcard for function args. TODO: keep?
+				|| this == UNKNOWN || other == UNKNOWN; //TODO: remove once we have explicit typing for functions
+	}
+
+	boolean isCallable() {
+		return this == FUNCTION || this == UNKNOWN; //TODO: remove once we have explicit typing for functions
 	}
 }
