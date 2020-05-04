@@ -1,6 +1,7 @@
 package space.bbkr.lang.jlox;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,16 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 			}
 
 			@Override
+			public List<LoxType> getParamTypes() {
+				return Collections.singletonList(LoxType.UNKNOWN);
+			}
+
+			@Override
+			public LoxType getReturnType() {
+				return LoxType.NONE;
+			}
+
+			@Override
 			public Object call(Interpreter interpreter, List<Object> arguments) {
 				System.out.println(stringify(arguments.get(0)));
 				return null;
@@ -33,6 +44,16 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 			@Override
 			public int arity() {
 				return 0;
+			}
+
+			@Override
+			public List<LoxType> getParamTypes() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public LoxType getReturnType() {
+				return LoxType.NUMBER;
 			}
 
 			@Override
@@ -199,7 +220,7 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 		}
 
 		LoxCallable function = (LoxCallable)callee;
-		if (arguments.size() != function.arity()) {
+		if (arguments.size() != function.arity()) { //TODO: fix class typing so this is no longer necessary
 			throw new RuntimeError("DefError", expression.paren, "Expected " + function.arity()
 					+ " arguments but got " + arguments.size() + " instead.");
 		}
@@ -292,6 +313,11 @@ class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void>
 	@Override
 	public Object visitFunctionExpression(Expression.FunctionExpression expression) {
 		return new LoxFunction(expression.function, environment, false);
+	}
+
+	@Override
+	public Object visitParameterExpression(Expression.ParameterExpression expression) {
+		return null; //TODO: necessary at interp phase?
 	}
 
 	@Override

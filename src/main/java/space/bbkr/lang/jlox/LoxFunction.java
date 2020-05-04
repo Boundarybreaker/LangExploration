@@ -1,5 +1,6 @@
 package space.bbkr.lang.jlox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 class LoxFunction implements LoxCallable {
@@ -15,14 +16,28 @@ class LoxFunction implements LoxCallable {
 
 	@Override
 	public int arity() {
-		return declaration.parms.size();
+		return declaration.params.size();
+	}
+
+	@Override
+	public List<LoxType> getParamTypes() {
+		List<LoxType> types = new ArrayList<>();
+		for (Expression.ParameterExpression param : declaration.params) {
+			types.add(param.type);
+		}
+		return types;
+	}
+
+	@Override
+	public LoxType getReturnType() {
+		return declaration.returnType;
 	}
 
 	@Override
 	public Object call(Interpreter interpreter, List<Object> arguments) {
 		Environment environment = new Environment(closure);
-		for (int i = 0; i < declaration.parms.size(); i++) {
-			environment.define(declaration.parms.get(i).lexeme, arguments.get(i));
+		for (int i = 0; i < declaration.params.size(); i++) {
+			environment.define(declaration.params.get(i).name.lexeme, arguments.get(i));
 		}
 
 		try {

@@ -1,6 +1,7 @@
 package space.bbkr.lang.jlox;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	private final Map<String, LoxType> globals = new HashMap<>();
 	private final Stack<Map<String, LoxType>> scopes = new Stack<>();
 	private final Map<String, Map<String, LoxType.FunctionLoxType>> classes = new HashMap<>();
+	private final Map<String, List<LoxType>> functions = new HashMap<>();
 
 	private FunctionType currentFunction = FunctionType.NONE;
 	private ClassType currentClass = ClassType.NONE;
@@ -20,8 +22,8 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	Resolver(Interpreter interpreter) {
 		this.interpreter = interpreter;
 		//TODO: better stdlib
-		globals.put("print", LoxType.FUNCTION(LoxType.NONE));
-		globals.put("clock", LoxType.FUNCTION(LoxType.NUMBER));
+		globals.put("print", new LoxType.FunctionLoxType(Collections.singletonList(LoxType.UNKNOWN), LoxType.NONE));
+		globals.put("clock", new LoxType.FunctionLoxType(Collections.emptyList(), LoxType.NUMBER));
 	}
 
 	@Override
@@ -122,14 +124,32 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 					"Only classes, functions, and methods can be called, but attempted to call " +
 							type.lexeme + " instead.");
 		}
-		for (Expression argument : expression.arguments) {
-			resolve(argument);
+		List<LoxType> args = new ArrayList<>();
+		if (type instanceof LoxType.FunctionLoxType) {
+			LoxType.FunctionLoxType functionType = (LoxType.FunctionLoxType)type;
+			type = functionType.returnType;
+			args = functionType.paramTypes;
 		}
 		if (type instanceof LoxType.ClassLoxType) {
 			LoxType.ClassLoxType classType = (LoxType.ClassLoxType)type;
-			return LoxType.INSTANCE(classType.name, classType);
+			type = new LoxType.InstanceLoxType(classType.name, classType);
+			//TODO: args
 		}
-		return LoxType.UNKNOWN;
+		if (!args.isEmpty() && expression.arguments.size() != args.size()) {
+			Lox.error(expression.paren, "Called function expected " + args.size() +
+					" arguments, but was given " + expression.arguments.size() + " instead.");
+		}
+		for (int i = 0; i < expression.arguments.size(); i++) {
+			Expression argument = expression.arguments.get(i);
+			LoxType argType = resolve(argument);
+			LoxType paramType = args.get(i);
+			if (!argType.matches(paramType)) {
+				Lox.error(expression.paren, "Called function expected an arg of type '" + paramType.lexeme +
+						"' but was given an arg of type '" + argType.lexeme + "' instead.");
+				return LoxType.UNKNOWN;
+			}
+		}
+		return type;
 	}
 
 	@Override
@@ -232,14 +252,22 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 				return null;
 			}
 		}
-		return LoxType.CLASS(expression.clazz.name, (LoxType.ClassLoxType)supertype);
+		return new LoxType.ClassLoxType(expression.clazz.name, (LoxType.ClassLoxType)supertype);
 	}
 
-	//TODO: explicit return types on functions
 	@Override
 	public LoxType visitFunctionExpression(Expression.FunctionExpression expression) {
 		resolve(expression.function);
-		return LoxType.FUNCTION(LoxType.UNKNOWN);
+		List<LoxType> types = new ArrayList<>();
+		for (Expression.ParameterExpression param : expression.function.params) {
+			types.add(resolve(param));
+		}
+		return new LoxType.FunctionLoxType(types, expression.function.returnType);
+	}
+
+	@Override
+	public LoxType visitParameterExpression(Expression.ParameterExpression expression) {
+		return expression.type;
 	}
 
 	@Override
@@ -313,16 +341,16 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 
 		if (statement.name.type == TokenType.IDENTIFIER) {
 			declare(statement.name);
-			define(statement.name, LoxType.CLASS(statement.name, (LoxType.ClassLoxType)supertype));
+			define(statement.name, new LoxType.ClassLoxType(statement.name, (LoxType.ClassLoxType)supertype));
 		}
 
 		if (statement.superclass != null) {
 			beginScope();
-			scopes.peek().put("super", LoxType.INSTANCE(statement.superclass.name, (LoxType.ClassLoxType)supertype));
+			scopes.peek().put("super", new LoxType.InstanceLoxType(statement.superclass.name, (LoxType.ClassLoxType)supertype));
 		}
 
 		beginScope();
-		scopes.peek().put("this", LoxType.CLASS(statement.name, (LoxType.ClassLoxType)supertype));
+		scopes.peek().put("this", new LoxType.ClassLoxType(statement.name, (LoxType.ClassLoxType)supertype));
 
 		Map<String, LoxType.FunctionLoxType> methods = new HashMap<>();
 
@@ -354,7 +382,12 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	public Void visitFunctionStatement(Statement.FunctionStatement statement) {
 		if (statement.name.type == TokenType.IDENTIFIER) {
 			declare(statement.name);
-			define(statement.name, LoxType.FUNCTION(LoxType.UNKNOWN));
+			List<LoxType> types = new ArrayList<>();
+			for (Expression.ParameterExpression param : statement.params) {
+				types.add(resolve(param));
+			}
+			define(statement.name, new LoxType.FunctionLoxType(types, statement.returnType));
+			functions.put(statement.name.lexeme, types);
 		}
 
 		resolveFunction(statement, FunctionType.FUNCTION);
@@ -464,14 +497,16 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 		currentFunction = type;
 
 		beginScope();
-		for (Token param : function.parms) {
-			declare(param);
-			define(param, LoxType.UNKNOWN); //TODO: typing
+		List<LoxType> paramTypes = new ArrayList<>();
+		for (Expression.ParameterExpression param : function.params) {
+			declare(param.name);
+			define(param.name, param.type);
+			paramTypes.add(param.type);
 		}
 		resolve(function.body);
 		endScope();
 		currentFunction = enclosingFunction;
-		return LoxType.FUNCTION(LoxType.UNKNOWN);
+		return new LoxType.FunctionLoxType(paramTypes, function.returnType);
 	}
 
 	private void beginScope() {

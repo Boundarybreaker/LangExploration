@@ -132,6 +132,29 @@ public class Parser {
 	}
 
 	//actual parsing
+	private LoxType type() {
+		if (match(NUM)) return LoxType.NUMBER;
+		if (match(BOOL)) return LoxType.BOOLEAN;
+		if (match(STR)) return LoxType.STRING;
+		if (match(LEFT_PAREN)) {
+			Token marker = previous();
+			List<LoxType> inputs = new ArrayList<>();
+			LoxType output = LoxType.NONE;
+			while (!match(RIGHT_PAREN) && !isAtEnd()) {
+				inputs.add(type());
+			}
+			if (isAtEnd()) throw error(marker, "Expect ')' after inputs for function type");
+			if (match(ARROW)) {
+				output = type();
+			}
+			return new LoxType.FunctionLoxType(inputs, output);
+		}
+		if (match(IDENTIFIER)) { //TODO: does this need to be dealt with better?
+			return new LoxType.InstanceLoxType(previous(), new LoxType.ClassLoxType(previous(), null)); //TODO: superclasses probably need to be done in resolve
+		}
+		throw error(peek(), "Expect type definition");
+	}
+
 	private Statement statement() {
 		if (match(IF)) return ifStatement();
 		if (match(RETURN)) return returnStatement();
@@ -276,28 +299,37 @@ public class Parser {
 		return new Statement.ClassStatement(name, superclass, methods);
 	}
 
-	//TODO: type definitions?
-	private Statement.FunctionStatement function(String kind) { //TODO: type def of parameters, return
+	private Statement.FunctionStatement function(String kind) {
 		Token name = previous();
 		if (match(IDENTIFIER)) {
 			name = previous();
 		}
 		consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
-		List<Token> parameters = new ArrayList<>();
+		List<Expression.ParameterExpression> parameters = new ArrayList<>();
 		if (!check(RIGHT_PAREN)) {
 			do {
-				if (parameters.size() >= 255) {
-					error(peek(), "Cannot have more than 255 parameters.");
+				if (parameters.size() >= 10) {
+					error(peek(), "Cannot have more than 10 parameters.");
 				}
 
-				parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+				Token id = consume(IDENTIFIER, "Expect parameter name.");
+				consume(COLON, "Type must be separated from parameter name by colon.");
+				LoxType type = type(); //TODO: placeholder
+
+				parameters.add(new Expression.ParameterExpression(id, type));
 			} while (match(COMMA));
 		}
 		consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
+		LoxType returnType = LoxType.NONE;
+
+		if (match(ARROW)) {
+			returnType = type();
+		}
+
 		consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
 		List<Statement> body = blockStatement();
-		return new Statement.FunctionStatement(name, parameters, body);
+		return new Statement.FunctionStatement(name, parameters, body, returnType);
 	}
 
 	private Statement varDeclaration() {

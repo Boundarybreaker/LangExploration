@@ -88,6 +88,11 @@ public class AstPrinter implements Expression.Visitor<String> {
 		return parenthesize("<function>");
 	}
 
+	@Override
+	public String visitParameterExpression(Expression.ParameterExpression expression) {
+		return expression.name.lexeme + ": " + expression.type.lexeme;
+	}
+
 	private String parenthesize(String name, Expression... expressions) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("(").append(name);

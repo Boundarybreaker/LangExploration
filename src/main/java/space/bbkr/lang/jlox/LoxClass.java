@@ -3,12 +3,15 @@ package space.bbkr.lang.jlox;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 class LoxClass implements LoxCallable {
 	final Token name;
+	@Nullable
 	final LoxClass superclass;
 	final Map<String, LoxFunction> methods;
 
-	LoxClass(Token name, LoxClass superclass, Map<String, LoxFunction> methods) {
+	LoxClass(Token name, @Nullable LoxClass superclass, Map<String, LoxFunction> methods) {
 		this.name = name;
 		this.superclass = superclass;
 		this.methods = methods;
@@ -22,9 +25,28 @@ class LoxClass implements LoxCallable {
 	}
 
 	@Override
+	public List<LoxType> getParamTypes() {
+		return null;
+	}
+
+	@Override
+	public LoxType getReturnType() {
+		return new LoxType.InstanceLoxType(name, new LoxType.ClassLoxType(name, null)); //TODO: how to do this properly?
+	}
+
+	@Override
 	public Object call(Interpreter interpreter, List<Object> arguments) {
 		LoxInstance instance = new LoxInstance(this);
 		return instance;
+	}
+
+	boolean matches(LoxClass other) {
+		LoxClass parent = superclass;
+		while (parent.superclass != null) {
+			parent = parent.superclass;
+			if (parent.name.lexeme.equals(other.name.lexeme)) return true;
+		}
+		return false;
 	}
 
 	LoxFunction findMethod(String name) {

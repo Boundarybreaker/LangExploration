@@ -13,3 +13,21 @@ class BostonCream : Doughnut {
 
 var cream = BostonCream();
 cream.cook();
+
+fun double(a: number) -> number {
+    return a * 2;
+}
+
+print(double(3));
+
+fun doDouble(f: (number) -> number, a: number) {
+    print(f(a));
+}
+
+doDouble(double, 3);
+
+fun bake(pastry: () -> Doughnut) {
+    print(pastry().cook());
+}
+
+//bake(Doughnut); TODO: doesn't work, need to fix class arg type

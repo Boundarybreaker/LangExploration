@@ -42,7 +42,6 @@ class Scanner {
 			case ':': addToken(COLON); break;
 			case ',': addToken(COMMA); break;
 			case '.': addToken(DOT); break;
-			case '-': addToken(MINUS); break;
 			case '+': addToken(PLUS); break;
 			case '?': addToken(QUESTION); break;
 			case ';': addToken(SEMICOLON); break;
@@ -56,7 +55,10 @@ class Scanner {
 					while (peek() != '\n' && !isAtEnd()) advance();
 				} else if (match('*')) {
 					//a block comment can span multiple lines
-					while (!isAtEnd() && !(peek() == '*' && peekNext() == '/')) advance();
+					while (!isAtEnd() && !(peek() == '*' && peekNext() == '/')) {
+						if (peek() == '\n') line++;
+						advance();
+					}
 					current += 2;
 				} else {
 					addToken(SLASH);
@@ -65,6 +67,7 @@ class Scanner {
 			}
 
 			//1-2 char tokens
+			case '-': addToken(match('>')? ARROW : MINUS); break;
 			case '!': addToken(match('=')? BANG_EQUAL : BANG); break;
 			case '=': addToken(match('=')? EQUAL_EQUAL : EQUAL); break;
 			case '>': addToken(match('=')? GREATER_EQUAL : GREATER); break;
@@ -197,6 +200,7 @@ class Scanner {
 
 	static {
 		KEYWORDS.put("and", AND);
+		KEYWORDS.put("boolean", BOOL);
 		KEYWORDS.put("break", BREAK);
 		KEYWORDS.put("class", CLASS);
 		KEYWORDS.put("else", ELSE);
@@ -205,8 +209,10 @@ class Scanner {
 		KEYWORDS.put("fun", FUN);
 		KEYWORDS.put("if", IF);
 		KEYWORDS.put("nil", NIL);
+		KEYWORDS.put("number", NUM);
 		KEYWORDS.put("or", OR);
 		KEYWORDS.put("return", RETURN);
+		KEYWORDS.put("string", STRING);
 		KEYWORDS.put("super", SUPER);
 		KEYWORDS.put("this", THIS);
 		KEYWORDS.put("true", TRUE);

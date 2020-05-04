@@ -24,6 +24,7 @@ abstract class Expression {
 		R visitGroupingExpression(GroupingExpression expression);
 		R visitClassExpression(ClassExpression expression);
 		R visitFunctionExpression(FunctionExpression expression);
+		R visitParameterExpression(ParameterExpression expression);
 	}
 
 	static class AssignExpression extends Expression {
@@ -250,6 +251,21 @@ abstract class Expression {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitFunctionExpression(this);
+		}
+	}
+
+	static class ParameterExpression extends Expression {
+		 final Token name;
+		 final LoxType type;
+
+		ParameterExpression(Token name, LoxType type) {
+			this.name = name;
+			this.type = type;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitParameterExpression(this);
 		}
 	}
 }

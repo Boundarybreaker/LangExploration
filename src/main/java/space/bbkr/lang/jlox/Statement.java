@@ -118,13 +118,15 @@ abstract class Statement {
 
 	static class FunctionStatement extends Statement {
 		 final Token name;
-		 final List<Token> parms;
+		 final List<Expression.ParameterExpression> params;
 		 final List<Statement> body;
+		 final LoxType returnType;
 
-		FunctionStatement(Token name, List<Token> parms, List<Statement> body) {
+		FunctionStatement(Token name, List<Expression.ParameterExpression> params, List<Statement> body, LoxType returnType) {
 			this.name = name;
-			this.parms = parms;
+			this.params = params;
 			this.body = body;
+			this.returnType = returnType;
 		}
 
 		@Override
