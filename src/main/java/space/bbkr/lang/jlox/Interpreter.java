@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The interpreter that actually runs things!
+ */
 class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void> {
 	final Environment globals = new Environment();
 	private Environment environment = globals;

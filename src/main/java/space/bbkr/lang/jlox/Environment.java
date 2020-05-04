@@ -5,11 +5,14 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+/**
+ * Environment which stores the current scope's variables, along with parent scope.
+ */
 public class Environment {
 	@Nullable
 	final Environment enclosing;
 	private final Map<String, Object> values = new HashMap<>();
-	private final Map<String, Class<?>> types = new HashMap<>(); //TODO: however Lox classes will work
+	private final Map<String, Class<?>> types = new HashMap<>(); //TODO: no longer needed  due to compile-time checking?
 
 	Environment() {
 		enclosing = null;

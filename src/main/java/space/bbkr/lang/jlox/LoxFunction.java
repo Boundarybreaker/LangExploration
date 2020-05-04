@@ -3,6 +3,9 @@ package space.bbkr.lang.jlox;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A function! Stores its signature and code, the local env, and whether it initializes a class.
+ */
 class LoxFunction implements LoxCallable {
 	private final Statement.FunctionStatement declaration;
 	private final Environment closure;

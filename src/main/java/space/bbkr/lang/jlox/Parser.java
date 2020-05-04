@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Parser to convert the token list from {@link Scanner} into A list of runnable statements.
+ */
 public class Parser {
 	private static class ParseError extends RuntimeException {}
 

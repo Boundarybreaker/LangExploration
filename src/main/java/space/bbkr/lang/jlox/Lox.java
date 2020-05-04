@@ -6,10 +6,12 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * The main class! Probably gonna get changed around when I convert this to a lib instead of standalone.
+ */
 public class Lox {
 	private static final Interpreter interpreter = new Interpreter();
 	private static boolean hadError = false;
@@ -65,8 +67,8 @@ public class Lox {
 			List<Statement> statements = Collections.singletonList(
 					new Statement.ExpressionStatement(
 							new Expression.CallExpression(
-									new Expression.VariableExpression(new Token(TokenType.IDENTIFIER, "print", null, 1)),
-									new Token(TokenType.LEFT_PAREN, "> ", null, 1),
+									new Expression.VariableExpression(new Token(TokenType.IDENTIFIER,"print", null, 1, 0)),
+									new Token(TokenType.LEFT_PAREN, "> ", null, 1, 6),
 									Collections.singletonList(expression))
 					)
 			);
@@ -90,15 +92,15 @@ public class Lox {
 		}
 	}
 
-	static void error(int line, String message) {
-		report(line, "", message);
+	static void error(int line, int column, String message) {
+		report(line, column, "", message);
 	}
 
 	static void error(Token token, String message) {
 		if (token.type == TokenType.EOF) {
-			report(token.line, "at end", message);
+			report(token.line, token.column, "at end", message);
 		} else {
-			report(token.line, "at '" + token.lexeme + "'", message);
+			report(token.line, token.column, "at '" + token.lexeme + "'", message);
 		}
 	}
 
@@ -107,8 +109,8 @@ public class Lox {
 		hadRuntimeError = true;
 	}
 
-	private static void report(int line, String where, String message) {
-		System.err.println("[line " + line + "] Error " + where + ": " + message);
+	private static void report(int line, int column, String where, String message) {
+		System.err.println("[line " + line + ", column " + column + "] Error " + where + ": " + message);
 		hadError = true;
 	}
 

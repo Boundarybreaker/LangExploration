@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-//TODO: type inference and checking
+/**
+ * Resolver for pre-run, post parse analysis. Primarily used for var definition and type checking.
+ */
 class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 	private final Interpreter interpreter;
 	private final Map<String, LoxType> globals = new HashMap<>();
@@ -124,29 +126,31 @@ class Resolver implements Expression.Visitor<LoxType>, Statement.Visitor<Void> {
 					"Only classes, functions, and methods can be called, but attempted to call " +
 							type.lexeme + " instead.");
 		}
-		List<LoxType> args = new ArrayList<>();
+		List<LoxType> params = new ArrayList<>();
 		if (type instanceof LoxType.FunctionLoxType) {
 			LoxType.FunctionLoxType functionType = (LoxType.FunctionLoxType)type;
 			type = functionType.returnType;
-			args = functionType.paramTypes;
+			params = functionType.paramTypes;
 		}
 		if (type instanceof LoxType.ClassLoxType) {
 			LoxType.ClassLoxType classType = (LoxType.ClassLoxType)type;
 			type = new LoxType.InstanceLoxType(classType.name, classType);
 			//TODO: args
 		}
-		if (!args.isEmpty() && expression.arguments.size() != args.size()) {
-			Lox.error(expression.paren, "Called function expected " + args.size() +
+		if (!params.isEmpty() && expression.arguments.size() != params.size()) {
+			Lox.error(expression.paren, "Called function expected " + params.size() +
 					" arguments, but was given " + expression.arguments.size() + " instead.");
 		}
-		for (int i = 0; i < expression.arguments.size(); i++) {
-			Expression argument = expression.arguments.get(i);
-			LoxType argType = resolve(argument);
-			LoxType paramType = args.get(i);
-			if (!argType.matches(paramType)) {
-				Lox.error(expression.paren, "Called function expected an arg of type '" + paramType.lexeme +
-						"' but was given an arg of type '" + argType.lexeme + "' instead.");
-				return LoxType.UNKNOWN;
+		if (!params.isEmpty()) {
+			for (int i = 0; i < expression.arguments.size(); i++) {
+				Expression argument = expression.arguments.get(i);
+				LoxType argType = resolve(argument);
+				LoxType paramType = params.get(i);
+				if (!argType.matches(paramType)) {
+					Lox.error(expression.paren, "Called function expected an arg of type '" + paramType.lexeme +
+							"' but was given an arg of type '" + argType.lexeme + "' instead.");
+					return LoxType.UNKNOWN;
+				}
 			}
 		}
 		return type;

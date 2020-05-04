@@ -4,11 +4,29 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+/**
+ * The different types of value that can exist!
+ */
 class LoxType {
+	/**
+	 * No way to define this in-script, currently. Used as a wildcard for print and for preventing cascading errors if one type is bad.
+	 */
 	static final LoxType UNKNOWN = new LoxType(TokenType.QUESTION, "unknown");
+	/**
+	 * Used for marking a function as not returning anything. Represented by not specifying a return type.
+	 */
 	static final LoxType NONE = new LoxType(TokenType.NIL, "none");
+	/**
+	 * A 64-bit, double-precision floating point number. Just a double.
+	 */
 	static final LoxType NUMBER = new LoxType(TokenType.NUM, "number");
+	/**
+	 * A boolean. Nothing special.
+	 */
 	static final LoxType BOOLEAN = new LoxType(TokenType.BOOL, "boolean");
+	/**
+	 * A string! Saved using Java string literals, so what they really are is Complicated(tm).
+	 */
 	static final LoxType STRING = new LoxType(TokenType.STR, "string");
 
 	final TokenType marker;
@@ -28,6 +46,9 @@ class LoxType {
 		return false;
 	}
 
+	/**
+	 * A function, with specific inputs and output.
+	 */
 	static class FunctionLoxType extends LoxType {
 		final List<LoxType> paramTypes;
 		final LoxType returnType;
@@ -38,6 +59,7 @@ class LoxType {
 			this.returnType = returnType;
 		}
 
+		//TODO: match Unknown wildcard?
 		@Override
 		boolean matches(LoxType other) {
 			if (!super.matches(other)) return false;
@@ -67,6 +89,9 @@ class LoxType {
 		}
 	}
 
+	/**
+	 * An instance of a class, with a specific class type.
+	 */
 	static class InstanceLoxType extends LoxType {
 		final Token name;
 		final ClassLoxType type;
@@ -81,6 +106,7 @@ class LoxType {
 			return type.getRawTypeName();
 		}
 
+		//TODO: match Unknown wildcard?
 		@Override
 		boolean matches(LoxType other) {
 			if (!super.matches(other)) return false;
@@ -88,6 +114,9 @@ class LoxType {
 		}
 	}
 
+	/**
+	 * A class, with a specific constructor and superclass.
+	 */
 	static class ClassLoxType extends LoxType {
 		final Token name;
 		final ClassLoxType type;
@@ -102,6 +131,7 @@ class LoxType {
 			return name.lexeme;
 		}
 
+		//TODO: match Unknown wildcard? How do we make types actually work in Resolver?
 		@Override
 		boolean matches(LoxType other) {
 			if (!super.matches(other)) return false;

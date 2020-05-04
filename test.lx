@@ -20,11 +20,15 @@ fun double(a: number) -> number {
 
 print(double(3));
 
-fun doDouble(f: (number) -> number, a: number) {
+fun applyFunc(f: (number) -> number, a: number) {
     print(f(a));
 }
 
-doDouble(double, 3);
+applyFunc(double, 3);
+
+applyFunc(fun (x: number) -> number {
+    return (x * 3) / 1.5;
+}, 5);
 
 fun bake(pastry: () -> Doughnut) {
     print(pastry().cook());

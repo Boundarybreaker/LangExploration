@@ -1,5 +1,8 @@
 package space.bbkr.lang.jlox;
 
+/**
+ * Debug class that prints a representation of the abstract syntax tree with parenthesis wrapping. Might be removed.
+ */
 public class AstPrinter implements Expression.Visitor<String> {
 
 	String print(Expression expression) {

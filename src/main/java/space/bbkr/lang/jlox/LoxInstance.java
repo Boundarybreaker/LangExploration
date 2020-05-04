@@ -3,6 +3,9 @@ package space.bbkr.lang.jlox;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * An instance of a {@link LoxClass}. Stores the fields/properties.
+ */
 class LoxInstance {
 	private LoxClass clazz;
 	private final Map<String, Object> fields = new HashMap<>();
@@ -23,7 +26,7 @@ class LoxInstance {
 	}
 
 	void set(Token name, Object value) {
-		//TODO: Fail if this property doesn't exist?
+		//TODO: Fail if this property doesn't exist? Do we want to let outsiders define new properties?
 		fields.put(name.lexeme, value);
 	}
 

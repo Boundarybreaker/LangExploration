@@ -1,5 +1,8 @@
 package space.bbkr.lang.jlox;
 
+/**
+ * Debug class that presents a representation of the abstract syntax tree with reverse polish notation. Might be removed.
+ */
 class ReversePolishAstPrinter implements Expression.Visitor<String> {
 
 	String print(Expression expression) {

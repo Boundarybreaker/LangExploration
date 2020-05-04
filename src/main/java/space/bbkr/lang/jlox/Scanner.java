@@ -9,6 +9,9 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+/**
+ * Scanner/lexer to convert a string into a series of tokens, which can then be parsed into statements.
+ */
 class Scanner {
 	private static final Map<String, TokenType> KEYWORDS = new HashMap<>();
 	private final String source;
@@ -16,6 +19,7 @@ class Scanner {
 	private int start = 0;
 	private int current = 0;
 	private int line = 1;
+	private int column = 0;
 
 	Scanner(String source) {
 		this.source = source;
@@ -27,7 +31,7 @@ class Scanner {
 			scanToken();
 		}
 
-		tokens.add(new Token(EOF, "", null, line));
+		tokens.add(new Token(EOF, "", null, line, column));
 		return tokens;
 	}
 
@@ -56,10 +60,14 @@ class Scanner {
 				} else if (match('*')) {
 					//a block comment can span multiple lines
 					while (!isAtEnd() && !(peek() == '*' && peekNext() == '/')) {
-						if (peek() == '\n') line++;
+						if (peek() == '\n') {
+							line++;
+							column = 0;
+						}
 						advance();
 					}
 					current += 2;
+					column += 2;
 				} else {
 					addToken(SLASH);
 				}
@@ -80,6 +88,7 @@ class Scanner {
 				break;
 			case '\n':
 				line++;
+				column = 0;
 				break;
 
 			//strings
@@ -95,7 +104,7 @@ class Scanner {
 					identifier();
 				} else {
 					//none, error
-					Lox.error(line, "unexpected character '" + c + "'.");
+					Lox.error(line, column, "unexpected character '" + c + "'.");
 				}
 				break;
 		}
@@ -104,6 +113,7 @@ class Scanner {
 	//movement
 	private char advance() {
 		current++;
+		column++;
 		return source.charAt(current - 1);
 	}
 
@@ -124,7 +134,7 @@ class Scanner {
 
 	private void addToken(TokenType type, @Nullable Object literal) {
 		String text = source.substring(start, current);
-		tokens.add(new Token(type, text, literal, line));
+		tokens.add(new Token(type, text, literal, line, column));
 	}
 
 	//checking
@@ -137,6 +147,7 @@ class Scanner {
 		if (source.charAt(current) != expected) return false;
 
 		current++;
+		column++;
 		return true;
 	}
 
@@ -158,13 +169,16 @@ class Scanner {
 	//constructing
 	private void string() {
 		while (peek() != '"' && !isAtEnd()) {
-			if (peek() == '\n') line++;
+			if (peek() == '\n') {
+				line++;
+				column = 0;
+			}
 			advance();
 		}
 
 		//unterminated
 		if (isAtEnd()) {
-			Lox.error(line, "Unterminated string");
+			Lox.error(line, column, "Unterminated string");
 			return;
 		}
 

@@ -5,6 +5,9 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+/**
+ * A class in Lox! Stores the superclass and methods, along with the way to construct new instances.
+ */
 class LoxClass implements LoxCallable {
 	final Token name;
 	@Nullable

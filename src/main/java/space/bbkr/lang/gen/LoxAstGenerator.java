@@ -5,6 +5,17 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Generator for the abstract syntax tree for Lox.
+ * Because of this, I can't add any docs directly to Expression or Statement.
+ * Run with arg `src/main/java/space/bbkr/lang/jlox` to make them generate in place
+ * Entry format: <type name>: <comma-separated arguments>
+ * support for @Nullable annotation is hardcoded, as strings are split on ' '
+ * nodes are generally sorted by order of precedence - higher on list has higher precedence
+ * each subclass has a pre-generated body so we only need to write one method to visit each type of class,
+ * making it so that we don't need to worry about grain direction
+ * (see <a href="https://craftinginterpreters.com/representing-code.html#the-expression-problem">The Expression Problem</a>)
+ */
 public class LoxAstGenerator {
 	public static void main(String[] args) throws IOException {
 		if (args.length != 1) {
@@ -12,35 +23,36 @@ public class LoxAstGenerator {
 			System.exit(1);
 		}
 		String outputDir = args[0];
+		//expressions - evaluated and a value is returned
 		defineAst(outputDir, "Expression", Arrays.asList(
-				"Assign: Token name, Expression value",
-				"Ternary: Token question, Expression condition, Expression positive, Expression negative",
-				"Logical: Expression left, Token operator, Expression right",
-				"Binary: Expression left, Token operator, Expression right",
-				"Unary: Token operator, Expression right",
-				"Call: Expression callee, Token paren, List<Expression> arguments",
-				"Get: Expression object, Token name",
-				"Set: Expression object, Token name, Expression value",
-				"Literal: LoxType type, @Nullable Object value",
-				"Super: Token keyword, Token method",
-				"This: Token keyword",
-				"Variable: Token name",
-				"Grouping: Expression expression",
-				"Class: Statement.ClassStatement clazz",
-				"Function: Statement.FunctionStatement function",
-				"Parameter: Token name, LoxType type"
+				"Assign: Token name, Expression value", //assign a value to a variable - `x = 5`
+				"Ternary: Token question, Expression condition, Expression positive, Expression negative", //ternary operation - 5 == 5? true : false
+				"Logical: Expression left, Token operator, Expression right", //boolean logic binary operation - true and false ('and' literal will be changed to '&&' later)
+				"Binary: Expression left, Token operator, Expression right", //binary operation - +, -, *, /, <, <=, >, >=
+				"Unary: Token operator, Expression right", //unary operation - !true, -5
+				"Call: Expression callee, Token paren, List<Expression> arguments", //call a function or ctor (callee is the callable)
+				"Get: Expression object, Token name", //get a property from an instance - object.property
+				"Set: Expression object, Token name, Expression value", //set a property on an instance, object.property = 5
+				"Literal: LoxType type, @Nullable Object value", //number, boolean, or string literal
+				"Super: Token keyword, Token method", //call a method on superclass
+				"This: Token keyword", //access a property or method on self
+				"Variable: Token name", //reference a variable
+				"Grouping: Expression expression", //do an operation inside of parentheses
+				"Class: Statement.ClassStatement clazz", //define a class while inside an argument, for anonymous classes
+				"Function: Statement.FunctionStatement function", //define a function inside of an argument, for anonymous functions
+				"Parameter: Token name, LoxType type" //name and type for function param
 		));
 
 		defineAst(outputDir, "Statement", Arrays.asList(
-				"If: Token keyword, Expression condition, Statement thenBranch, @Nullable Statement elseBranch",
-				"Return: Token keyword, @Nullable Expression value, boolean hasType",
-				"While: Token keyword, Expression condition, Statement body",
-				"Break: Token keyword",
-				"Block: List<Statement> statements",
-				"Class: Token name, @Nullable Expression.VariableExpression superclass, List<Statement.FunctionStatement> methods",
-				"Function: Token name, List<Expression.ParameterExpression> params, List<Statement> body, LoxType returnType",
-				"Var: Token name, @Nullable Expression initializer",
-				"Expression: Expression expression"
+				"If: Token keyword, Expression condition, Statement thenBranch, @Nullable Statement elseBranch", //if statement - if (true) print(5); else print(4);
+				"Return: Token keyword, @Nullable Expression value, boolean hasType", //return
+				"While: Token keyword, Expression condition, Statement body", //while loop - for loops are sugar
+				"Break: Token keyword", //break a loop
+				"Block: List<Statement> statements", //block of statements in curly brackets
+				"Class: Token name, @Nullable Expression.VariableExpression superclass, List<Statement.FunctionStatement> methods", //class, with a name, optional superclass, and methods (properties can be added at any time)
+				"Function: Token name, List<Expression.ParameterExpression> params, List<Statement> body, LoxType returnType", //function, with a name, params, a body, and a return type
+				"Var: Token name, @Nullable Expression initializer", //variable with a name and optional initializer
+				"Expression: Expression expression" //just an expression as a statement
 		));
 	}
 
