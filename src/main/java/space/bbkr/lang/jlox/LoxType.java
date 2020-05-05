@@ -94,50 +94,41 @@ class LoxType {
 	 */
 	static class InstanceLoxType extends LoxType {
 		final Token name;
-		final ClassLoxType type;
 
-		InstanceLoxType(Token name, ClassLoxType type) {
+		InstanceLoxType(Token name) {
 			super(TokenType.IDENTIFIER, "instance<" + name.lexeme + ">");
 			this.name = name;
-			this.type = type;
 		}
 
-		String getRawTypeName() {
-			return type.getRawTypeName();
-		}
-
-		//TODO: match Unknown wildcard?
 		@Override
 		boolean matches(LoxType other) {
 			if (!super.matches(other)) return false;
-			return type.matches(((InstanceLoxType)other).type);
+			return lexeme.equals(other.lexeme);
 		}
 	}
 
 	/**
 	 * A class, with a specific constructor and superclass.
 	 */
-	static class ClassLoxType extends LoxType {
+	static class ClassLoxType extends FunctionLoxType {
 		final Token name;
-		final ClassLoxType type;
+		final FunctionLoxType constructor;
 
-		ClassLoxType(Token name, @Nullable ClassLoxType type) { //TODO: how to manage this better at parse time?
-			super(TokenType.CLASS, "class<" + name.lexeme + ">");
+		ClassLoxType(Token name, FunctionLoxType constructor) { //TODO: should class lox types have more stuff?
+			super(constructor.paramTypes, constructor.returnType);
 			this.name = name;
-			this.type = type;
+			this.constructor = constructor;
 		}
 
-		String getRawTypeName() {
-			return name.lexeme;
-		}
-
-		//TODO: match Unknown wildcard? How do we make types actually work in Resolver?
 		@Override
 		boolean matches(LoxType other) {
 			if (!super.matches(other)) return false;
-			ClassLoxType classType = (ClassLoxType)other;
-			if (lexeme.equals(other.lexeme)) return true; //shortcut
-			return type != null && type.matches(classType.type);
+			if (other instanceof ClassLoxType) {
+				ClassLoxType classType = (ClassLoxType) other;
+				if (lexeme.equals(other.lexeme)) return true; //shortcut
+				return constructor.matches(classType.constructor); //TODO: what we want for inheritance?
+			}
+			return true;
 		}
 
 		@Override

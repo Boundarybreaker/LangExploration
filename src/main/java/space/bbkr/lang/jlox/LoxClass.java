@@ -34,7 +34,7 @@ class LoxClass implements LoxCallable {
 
 	@Override
 	public LoxType getReturnType() {
-		return new LoxType.InstanceLoxType(name, new LoxType.ClassLoxType(name, null)); //TODO: how to do this properly?
+		return new LoxType.InstanceLoxType(name);
 	}
 
 	@Override

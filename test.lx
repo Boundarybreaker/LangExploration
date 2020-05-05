@@ -31,7 +31,9 @@ applyFunc(fun (x: number) -> number {
 }, 5);
 
 fun bake(pastry: () -> Doughnut) {
-    print(pastry().cook());
+    pastry().cook();
 }
 
-//bake(Doughnut); TODO: doesn't work, need to fix class arg type
+bake(Doughnut);
+//bake(BostonCream); //TODO: doesn't work, heirarchy issue
+

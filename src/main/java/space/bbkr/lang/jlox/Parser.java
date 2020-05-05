@@ -153,7 +153,7 @@ public class Parser {
 			return new LoxType.FunctionLoxType(inputs, output);
 		}
 		if (match(IDENTIFIER)) { //TODO: does this need to be dealt with better?
-			return new LoxType.InstanceLoxType(previous(), new LoxType.ClassLoxType(previous(), null)); //TODO: superclasses probably need to be done in resolve
+			return new LoxType.InstanceLoxType(previous()); //TODO: superclasses probably need to be done in resolve
 		}
 		throw error(peek(), "Expect type definition");
 	}
