@@ -114,7 +114,7 @@ class LoxType {
 		final Token name;
 		final FunctionLoxType constructor;
 
-		ClassLoxType(Token name, FunctionLoxType constructor) { //TODO: should class lox types have more stuff?
+		ClassLoxType(Token name, FunctionLoxType constructor) {
 			super(constructor.paramTypes, constructor.returnType);
 			this.name = name;
 			this.constructor = constructor;
